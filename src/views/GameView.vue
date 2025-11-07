@@ -12,8 +12,14 @@
       
       <!-- Instrucciones simples -->
       <div class="text-center mt-4">
-        <p class="text-gray-600 text-sm">
-          Haz clic para crear una burbuja
+        <p class="text-gray-600 text-sm mb-2">
+          <strong>Objetivo:</strong> Haz que dos burbujas que sumen múltiplos de 10 colisionen para fusionarlas
+        </p>
+        <p class="text-gray-500 text-xs mb-1">
+          Fusiones válidas: 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 • Los colores se mezclan
+        </p>
+        <p class="text-gray-500 text-xs">
+          Burbujas caen automáticamente • Haz clic para crear más • Arrastra para moverlas
         </p>
       </div>
     </div>
@@ -32,10 +38,34 @@ const canvasHeight = ref(600)
 // Motor de física
 let physicsEngine = null
 let animationId = null
+let bubbleInterval = null
+
+// Configuración del juego
+const BUBBLE_SPAWN_INTERVAL = 2000 // 2 segundos entre burbujas
 
 const createBubble = () => {
   if (physicsEngine) {
     physicsEngine.createBubble()
+  }
+}
+
+const startBubbleGeneration = () => {
+  // Crear una burbuja inicial inmediatamente
+  createBubble()
+  
+  // Configurar el intervalo para crear burbujas automáticamente
+  bubbleInterval = setInterval(() => {
+    createBubble()
+  }, BUBBLE_SPAWN_INTERVAL)
+  
+  console.log('Generación automática de burbujas iniciada')
+}
+
+const stopBubbleGeneration = () => {
+  if (bubbleInterval) {
+    clearInterval(bubbleInterval)
+    bubbleInterval = null
+    console.log('Generación automática de burbujas detenida')
   }
 }
 
@@ -68,17 +98,24 @@ const initializeGame = () => {
   if (gameCanvas.value) {
     physicsEngine = new PhysicsEngine(gameCanvas.value)
     
-    // Crear una burbuja inicial después de un breve delay
-    setTimeout(() => {
-      createBubble()
-    }, 500)
+    // Configurar el callback para las fusiones
+    physicsEngine.onBubbleFusion = (valueA, valueB, sum) => {
+      console.log(`¡Fusión exitosa! ${valueA} + ${valueB} = ${sum}`)
+      // Aquí podemos agregar puntuación, efectos de sonido, etc.
+    }
     
     // Iniciar el loop de renderizado personalizado
     gameLoop()
+    
+    // Iniciar la generación automática de burbujas después de un breve delay
+    setTimeout(() => {
+      startBubbleGeneration()
+    }, 500)
   }
   
   return () => {
     window.removeEventListener('resize', updateCanvasSize)
+    stopBubbleGeneration()
     if (animationId) {
       cancelAnimationFrame(animationId)
     }
