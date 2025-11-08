@@ -428,6 +428,18 @@ export class GamePhysics {
             Matter.Body.scale(bomb, scaleFactor, scaleFactor)
         }
 
+        // Desaparecer burbujas que colisionan con la bomba mientras crece
+        const bodies = Matter.Composite.allBodies(this.world)
+        const bubbles = bodies.filter(body => body.isBubble && !body.isBomb && !body.isExploding)
+        bubbles.forEach(bubble => {
+            const dx = bubble.position.x - bomb.position.x
+            const dy = bubble.position.y - bomb.position.y
+            const distance = Math.sqrt(dx * dx + dy * dy)
+            if (distance < bomb.circleRadius) {
+                Matter.World.remove(this.world, bubble)
+            }
+        })
+
         this.applyExplosionForce(bomb, targetRadius, progress)
 
         if (progress >= 1) {
