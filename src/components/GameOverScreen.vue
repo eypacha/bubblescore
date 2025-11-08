@@ -1,6 +1,6 @@
 <template>
   <div v-show="isVisible" 
-       class="absolute inset-0 bg-white bg-opacity-95 rounded-lg border border-gray-300 shadow-lg flex flex-col items-center justify-center p-6"
+       class="absolute inset-0 bg-opacity-95 rounded-lg border border-gray-300 shadow-lg flex flex-col items-center justify-center p-6"
        :style="{ width: canvasWidth + 'px', height: canvasHeight + 'px' }">
     
     <!-- Título Game Over -->
@@ -22,24 +22,6 @@
           <div class="text-xs text-gray-500">Alcanzado</div>
         </div>
       </div>
-    </div>
-
-    <!-- Mensaje -->
-    <div class="text-center mb-6">
-      <p class="text-gray-600 text-sm max-w-xs leading-relaxed">
-        <template v-if="score < 1000">
-          ¡Buen intento! Practica más para mejorar.
-        </template>
-        <template v-else-if="score < 5000">
-          ¡Excelente progreso! Dominas las fusiones.
-        </template>
-        <template v-else-if="score < 10000">
-          ¡Increíble! Eres un maestro.
-        </template>
-        <template v-else>
-          ¡LEGENDARIO! Maestría absoluta.
-        </template>
-      </p>
     </div>
 
     <!-- Botón de reinicio -->

@@ -1,4 +1,10 @@
 export class ScoreManager {
+  subtractPoints(points) {
+    this.score = Math.max(0, this.score - points);
+    if (this.onScoreUpdate) {
+      this.onScoreUpdate(this.score, -points, 0);
+    }
+  }
   constructor() {
     this.score = 0
     this.multiplierBonus = 10

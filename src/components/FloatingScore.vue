@@ -17,15 +17,15 @@
       ]"
     >
       <div class="text-center">
-        <div v-if="!isBombExplosion">+{{ points }} pts</div>
+        <div v-if="!isBombExplosion">+{{ points }}</div>
         <div class="text-xs">
           {{ fusion }}
         </div>
         <div v-if="isPerfectFusion && !isBombExplosion" class="text-xs font-bold">
-          💯 ¡PERFECTA! 💯
+          100!
         </div>
         <div v-else-if="colorBonus && !isBombExplosion" class="text-xs font-bold">
-          ⭐ MISMO COLOR ⭐
+          COLOR
         </div>
       </div>
     </div>

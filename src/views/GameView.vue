@@ -190,21 +190,26 @@ const initializeGame = () => {
       const perfectText = isPerfectFusion ? '100!' : ''
       score.value = physicsEngine.scoreManager.getScore()
       
+      const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+      const margin = 30; 
+      const clampedX = clamp(fusionX, margin, canvasWidth.value - margin);
+      const clampedY = clamp(fusionY, margin, canvasHeight.value - margin);
+
       const floatingScore = {
         id: nextFloatingId++,
         points: pointsEarned,
         fusion: isPerfectFusion ? `${valueA}+${valueB}=💯` : `${valueA}+${valueB}=${sum}`,
         colorBonus: colorBonus,
         isPerfectFusion: isPerfectFusion,
-        y: fusionY,
+        x: clampedX,
+        y: clampedY,
         duration: isPerfectFusion ? 3000 : 2000
       }
-      
       floatingScores.value.push(floatingScore)
     }
     
     physicsEngine.scoreManager.onScoreUpdate = (newScore, pointsAdded) => {
-      score.value = newScore
+      score.value = physicsEngine.scoreManager.getScore()
     }
     
     physicsEngine.onGameOver = () => {
@@ -225,10 +230,9 @@ const initializeGame = () => {
         duration: 3000
       }
       
-      floatingScores.value.push(explosionEffect)
-      
-      // Aquí puedes agregar penalización de puntos si quieres
-      // score.value = Math.max(0, score.value - 100) // Ejemplo: -100 puntos
+  floatingScores.value.push(explosionEffect)
+  // Penalización: restar 200 puntos al explotar bomba
+  score.value = Math.max(0, score.value - 200)
     }
     
     gameLoop()
