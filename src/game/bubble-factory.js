@@ -5,6 +5,25 @@ export class BubbleFactory {
     this.world = world
     this.canvas = canvas
     this.colorManager = colorManager
+    
+    // Sistema de bolsas estilo Tetris
+    this.valueBag = []
+    this.fillBag()
+  }
+
+  fillBag() {
+    this.valueBag = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    for (let i = this.valueBag.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[this.valueBag[i], this.valueBag[j]] = [this.valueBag[j], this.valueBag[i]]
+    }
+  }
+
+  getNextValue() {
+    if (this.valueBag.length === 0) {
+      this.fillBag()
+    }
+    return this.valueBag.pop()
   }
 
   createBubble() {
@@ -13,6 +32,7 @@ export class BubbleFactory {
     const y = -50
     const radius = 30
     const selectedColor = this.colorManager.getRandomColor()
+    const value = this.getNextValue()
     
     const bubble = Matter.Bodies.circle(x, y, radius, {
       restitution: 0.6,
@@ -25,12 +45,11 @@ export class BubbleFactory {
       },
       isBubble: true,
       hasCollided: false,
-      value: Math.floor(Math.random() * 9) + 1,
+      value: value,
       color: selectedColor
     })
     
     Matter.World.add(this.world, bubble)
-    console.log(`Burbuja creada en x: ${x}, valor: ${bubble.value}, color: ${selectedColor.name}`)
     return bubble
   }
 }

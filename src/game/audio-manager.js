@@ -39,14 +39,12 @@ export class AudioManager {
     const randomIndex = Math.floor(Math.random() * this.popSounds.length)
     const selectedSound = this.popSounds[randomIndex]
     selectedSound.play()
-    console.log(`Reproduciendo sonido: pop${randomIndex + 1}.mp3`)
   }
 
   playDropSound() {
     const randomIndex = Math.floor(Math.random() * this.dropSounds.length)
     const selectedSound = this.dropSounds[randomIndex]
     selectedSound.play()
-    console.log(`Reproduciendo sonido: drop${randomIndex + 1}.mp3`)
   }
 
   destroy() {

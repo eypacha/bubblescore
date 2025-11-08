@@ -90,8 +90,9 @@ const initializeGame = () => {
   if (gameCanvas.value) {
     physicsEngine = new GamePhysics(gameCanvas.value)
     
+    updateCanvasSize()
+    
     physicsEngine.onBubbleFusion = (valueA, valueB, sum) => {
-      console.log(`¡Fusión exitosa! ${valueA} + ${valueB} = ${sum}`)
     }
     
     gameLoop()

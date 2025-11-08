@@ -71,8 +71,6 @@ export class ColorManager {
       name: mixedName
     }
     
-    console.log(`Mezcla Mixbox: ${colorA.name}(${colorA.fill}) + ${colorB.name}(${colorB.fill}) = ${mixedName}(${mixedFill})`)
-    
     return result
   }
 

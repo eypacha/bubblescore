@@ -95,7 +95,6 @@ export class GamePhysics {
     if (body.isBubble && !body.hasCollided) {
       body.hasCollided = true
       this.audioManager.playDropSound()
-      console.log(`Primera colisión de burbuja con valor ${body.value}`)
     }
   }
   
@@ -103,8 +102,6 @@ export class GamePhysics {
     const sum = bubbleA.value + bubbleB.value
     
     if (sum % 10 === 0 && sum >= 10 && sum <= 100) {
-      console.log(`¡FUSIÓN! ${bubbleA.value} + ${bubbleB.value} = ${sum}`)
-      console.log(`Colores: ${bubbleA.color.name} + ${bubbleB.color.name}`)
       
       this.audioManager.playFusionSound()
       
@@ -143,7 +140,6 @@ export class GamePhysics {
     })
     
     Matter.World.add(this.world, fusedBubble)
-    console.log(`Burbuja fusionada creada: ${colorA.name} + ${colorB.name} = ${fusedColor.name}, valor ${value}, nivel ${fusionLevel}`)
     return fusedBubble
   }
   
