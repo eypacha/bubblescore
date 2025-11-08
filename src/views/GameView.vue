@@ -88,7 +88,6 @@ let nextFloatingId = 0
 let bubbleSpawnInterval = 2600 // Empieza más lento
 
 const createBubble = () => {
-  console.log('CreateBubble llamado, physicsEngine existe:', !!physicsEngine, 'bubbleFactory existe:', !!(physicsEngine && physicsEngine.bubbleFactory))
   if (physicsEngine && physicsEngine.bubbleFactory) {
     physicsEngine.bubbleFactory.createBubble()
   } 
