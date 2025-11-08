@@ -100,14 +100,17 @@ const restartGame = () => {
   floatingScores.value = []
   
   stopBubbleGeneration()
-  
+
+  // Reiniciar velocidad de aparición de burbujas
+  bubbleSpawnInterval = 4000;
+
   if (physicsEngine) {
     physicsEngine.restart()
     if (physicsEngine.scoreManager) {
       physicsEngine.scoreManager.reset()
     }
   }
-  
+
   console.log('Esperando 300ms antes de reiniciar generación de burbujas...')
   setTimeout(() => {
     startBubbleGeneration()
