@@ -1,4 +1,4 @@
-export const LEVEL_UP_SCORE = 5000;
+export const LEVEL_UP_SCORE = 2000;
 export const TIME_IN_DANGER_TO_GAME_OVER = 1000;
 export const BUBBLE_TIMER = 5000;
 export const EXPLOSION_DURATION = 60;
