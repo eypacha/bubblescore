@@ -1,6 +1,6 @@
 import Matter from 'matter-js'
-import mixbox from 'mixbox'
 import { AudioManager } from './audio-manager.js'
+import { ColorManager } from './color-manager.js'
 
 export class PhysicsEngine {
   constructor(canvas) {
@@ -16,6 +16,11 @@ export class PhysicsEngine {
     // CONFIGURACIÓN DE AUDIO
     // ============================================ 
     this.initializeAudio()
+    
+    // ============================================
+    // CONFIGURACIÓN DE COLORES
+    // ============================================
+    this.initializeColors()
     
     // ============================================
     // CONFIGURACIÓN DE EVENTOS Y CONTROLES
@@ -82,6 +87,11 @@ export class PhysicsEngine {
   initializeAudio() {
     // Inicializar el manager de audio
     this.audioManager = new AudioManager()
+  }
+  
+  initializeColors() {
+    // Inicializar el manager de colores
+    this.colorManager = new ColorManager()
   }
   
   startEngine() {
@@ -159,7 +169,7 @@ export class PhysicsEngine {
     const radius = Math.min(baseRadius + (fusionLevel * 5), 65) // Máximo 65px para 100
     
     // Mezclar colores usando RGB real
-    const fusedColor = this.mixColors(colorA, colorB)
+    const fusedColor = this.colorManager.mixColors(colorA, colorB)
     
     // Crear la burbuja fusionada
     const fusedBubble = Matter.Bodies.circle(x, y, radius, {
@@ -188,83 +198,9 @@ export class PhysicsEngine {
     return fusedBubble
   }
   
-  mixColors(colorA, colorB) {
-    // Función auxiliar para convertir hex a RGB string
-    const hexToRgbString = (hex) => {
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-      if (result) {
-        const r = parseInt(result[1], 16)
-        const g = parseInt(result[2], 16)
-        const b = parseInt(result[3], 16)
-        return `rgb(${r}, ${g}, ${b})`
-      }
-      return null
-    }
-    
-    // Función auxiliar para convertir resultado de Mixbox a hex
-    const mixboxResultToHex = (mixboxResult) => {
-      // Si es un string rgb(r,g,b), parsearlo
-      if (typeof mixboxResult === 'string' && mixboxResult.startsWith('rgb(')) {
-        const match = mixboxResult.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/)
-        if (match) {
-          const r = parseInt(match[1])
-          const g = parseInt(match[2])
-          const b = parseInt(match[3])
-          const componentToHex = (c) => {
-            const hex = Math.round(c).toString(16)
-            return hex.length == 1 ? "0" + hex : hex
-          }
-          return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b)
-        }
-      }
-      
-      // Si es un array [r, g, b], convertir directamente
-      if (Array.isArray(mixboxResult) && mixboxResult.length >= 3) {
-        const r = Math.round(mixboxResult[0])
-        const g = Math.round(mixboxResult[1]) 
-        const b = Math.round(mixboxResult[2])
-        const componentToHex = (c) => {
-          const hex = Math.round(c).toString(16)
-          return hex.length == 1 ? "0" + hex : hex
-        }
-        return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b)
-      }
-      
-      return '#000000'
-    }
-    
-    // Convertir colores hex a RGB strings para Mixbox
-    const rgbA = hexToRgbString(colorA.fill)
-    const rgbB = hexToRgbString(colorB.fill)
-    const strokeA = hexToRgbString(colorA.stroke)
-    const strokeB = hexToRgbString(colorB.stroke)
-    
-    if (!rgbA || !rgbB || !strokeA || !strokeB) {
-      console.error('Error convirtiendo colores:', colorA, colorB)
-      return { fill: '#6B7280', stroke: '#4B5563', name: 'gray' }
-    }
-    
-    // Usar Mixbox para mezcla realista de colores
-    const mixedRgbString = mixbox.lerp(rgbA, rgbB, 0.5)
-    const mixedStrokeString = mixbox.lerp(strokeA, strokeB, 0.5)
-    
-    // Convertir de vuelta a hex
-    const mixedFill = mixboxResultToHex(mixedRgbString)
-    const mixedStrokeHex = mixboxResultToHex(mixedStrokeString)
-    
-    // Crear nombre descriptivo basado en los colores originales
-    const mixedName = `${colorA.name}+${colorB.name}`
-    
-    const result = {
-      fill: mixedFill,
-      stroke: mixedStrokeHex,
-      name: mixedName
-    }
-    
-    console.log(`Mezcla Mixbox: ${colorA.name}(${colorA.fill}) + ${colorB.name}(${colorB.fill}) = ${mixedName}(${mixedFill})`)
-    
-    return result
-  }
+  // ============================================
+  // SISTEMA DE EVENTOS E INTERACCIÓN
+  // ============================================
   
   setupMouseEvents() {
     // Prevenir el scroll en móviles cuando se toque el canvas
@@ -438,16 +374,8 @@ export class PhysicsEngine {
     // Tamaño medio del círculo
     const radius = 30
     
-    // Colores de pigmentos reales
-    const colors = [
-      { fill: '#FF2702', stroke: '#CC1F02', name: 'red' }, 
-      { fill: '#FEEC00', stroke: '#CBBC00', name: 'yellow' },
-      { fill: '#002185', stroke: '#001A6B', name: 'blue' }
-    ]
-    
     // Seleccionar un color aleatorio
-    const colorIndex = Math.floor(Math.random() * colors.length)
-    const selectedColor = colors[colorIndex]
+    const selectedColor = this.colorManager.getRandomColor()
     
     // Crear el círculo/burbuja
     const bubble = Matter.Bodies.circle(x, y, radius, {
@@ -539,30 +467,6 @@ export class PhysicsEngine {
     }
     
     this.ctx.restore()
-  }
-  
-  // Función auxiliar para aclarar colores
-  lightenColor(color, percent) {
-    const num = parseInt(color.replace("#", ""), 16)
-    const amt = Math.round(2.55 * percent)
-    const R = (num >> 16) + amt
-    const G = (num >> 8 & 0x00FF) + amt
-    const B = (num & 0x0000FF) + amt
-    return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
-      (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
-      (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1)
-  }
-  
-  // Función auxiliar para oscurecer colores
-  darkenColor(color, percent) {
-    const num = parseInt(color.replace("#", ""), 16)
-    const amt = Math.round(2.55 * percent)
-    const R = (num >> 16) - amt
-    const G = (num >> 8 & 0x00FF) - amt
-    const B = (num & 0x0000FF) - amt
-    return "#" + (0x1000000 + (R > 255 ? 255 : R < 0 ? 0 : R) * 0x10000 +
-      (G > 255 ? 255 : G < 0 ? 0 : G) * 0x100 +
-      (B > 255 ? 255 : B < 0 ? 0 : B)).toString(16).slice(1)
   }
   
   // Actualizar el tamaño del canvas
