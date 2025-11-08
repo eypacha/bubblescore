@@ -9,10 +9,9 @@ export class GamePhysics {
     this.canvas = canvas
     this.ctx = canvas.getContext('2d')
     
-    // Game state
     this.isGameOver = false
     this.dangerLineY = null
-    this.onGameOver = null // Callback para cuando se termine el juego
+    this.onGameOver = null
     
     this.initializePhysicsEngine()
     this.initializeAudio()
@@ -24,7 +23,6 @@ export class GamePhysics {
     this.createWalls()
     this.startEngine()
     
-    // Establecer línea de peligro
     this.updateDangerLine()
     
     console.log('Motor de física inicializado con sistema de fusión')
@@ -88,97 +86,43 @@ export class GamePhysics {
   }
 
   updateDangerLine() {
-    this.dangerLineY = this.canvas.height * 0.1 // 10% desde arriba
+    this.dangerLineY = this.canvas.height * 0.1
   }
 
   checkGameOver() {
     if (this.isGameOver) return false
     
-    // Calcular altura del montón de burbujas estáticas
-    const staticPileHeight = this.calculateStaticPileHeight()
-    
-    // Game over si el montón supera el 90% de la altura
-    const maxAllowedHeight = this.canvas.height * 0.9
-    if (staticPileHeight > maxAllowedHeight) {
-      this.triggerGameOver()
-      return true
-    }
-    return false
-  }
-
-  calculateStaticPileHeight() {
+    const currentTime = Date.now()
     const bodies = Matter.Composite.allBodies(this.world)
     const bubbles = bodies.filter(body => body.isBubble)
     
-    // Actualizar estado de movimiento para cada burbuja
-    this.updateBubbleMovementState(bubbles)
-    
-    // Filtrar solo burbujas que están estáticas Y no están siendo arrastradas
-    const staticBubbles = bubbles.filter(bubble => 
-      this.isBubbleStatic(bubble) && bubble !== this.draggedBody
-    )
-    
-    if (staticBubbles.length === 0) return 0
-    
-    // Encontrar la burbuja más alta (menor Y) entre las estáticas
-    const highestBubble = staticBubbles.reduce((highest, bubble) => {
-      const bubbleTop = bubble.position.y - bubble.circleRadius
-      const highestTop = highest.position.y - highest.circleRadius
-      return bubbleTop < highestTop ? bubble : highest
-    })
-    
-    const pileTop = highestBubble.position.y - highestBubble.circleRadius
-    const pileHeight = this.canvas.height - pileTop
-    
-    return pileHeight
-  }
-
-  updateBubbleMovementState(bubbles) {
-    const currentTime = Date.now()
-    
     bubbles.forEach(bubble => {
-      // Si está siendo arrastrada, no es estática
-      if (bubble === this.draggedBody) {
-        bubble.staticTime = 0
-        bubble.lastMoveTime = currentTime
-        bubble.lastPosition = { x: bubble.position.x, y: bubble.position.y }
-        return
-      }
+      const bubbleTop = bubble.position.y - bubble.circleRadius
+      const dangerZone = this.dangerLineY
       
-      if (!bubble.lastPosition) {
-        bubble.lastPosition = { x: bubble.position.x, y: bubble.position.y }
-        bubble.lastMoveTime = currentTime
-        bubble.staticTime = 0
-        return
-      }
-      
-      const distance = Math.sqrt(
-        Math.pow(bubble.position.x - bubble.lastPosition.x, 2) +
-        Math.pow(bubble.position.y - bubble.lastPosition.y, 2)
-      )
-      
-      // Si se movió más de 1 pixel, no está estática
-      if (distance > 1) {
-        bubble.lastPosition = { x: bubble.position.x, y: bubble.position.y }
-        bubble.lastMoveTime = currentTime
-        bubble.staticTime = 0
+      if (bubbleTop <= dangerZone) {
+        if (!bubble.dangerZoneStartTime) {
+          bubble.dangerZoneStartTime = currentTime
+        }
+        
+        const timeInDanger = currentTime - bubble.dangerZoneStartTime
+        if (timeInDanger > 1000) {
+          console.log(`Game Over: Burbuja en zona de peligro por ${timeInDanger}ms`)
+          this.triggerGameOver()
+          return true
+        }
       } else {
-        // Calcular tiempo estática
-        bubble.staticTime = currentTime - bubble.lastMoveTime
+        bubble.dangerZoneStartTime = null
       }
     })
-  }
-
-  isBubbleStatic(bubble) {
-    // Una burbuja se considera estática si no se ha movido por 1 segundo
-    return bubble.staticTime && bubble.staticTime > 1000
+    
+    return false
   }
 
   triggerGameOver() {
     this.isGameOver = true
     console.log('¡GAME OVER! El montón de burbujas ha alcanzado el límite de altura')
     
-    // Detener el motor de física
     if (this.runner) {
       Matter.Runner.stop(this.runner)
     }
@@ -316,7 +260,6 @@ export class GamePhysics {
   }
   
   onMouseDown(event) {
-    // No permitir interacción si el juego terminó
     if (this.isGameOver) return
     
     const mousePos = this.getMousePosition(event)
@@ -333,7 +276,6 @@ export class GamePhysics {
   }
   
   onMouseMove(event) {
-    // No permitir interacción si el juego terminó
     if (this.isGameOver) return
     
     if (this.isDragging && this.draggedBody) {
@@ -415,7 +357,6 @@ export class GamePhysics {
   customRender() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
     
-    // Dibujar línea de peligro dinámica basada en el montón
     this.drawDynamicDangerLine()
     
     const bodies = Matter.Composite.allBodies(this.world)
@@ -428,48 +369,7 @@ export class GamePhysics {
   }
 
   drawDynamicDangerLine() {
-    const staticPileHeight = this.calculateStaticPileHeight()
-    const maxAllowedHeight = this.canvas.height * 0.9
-    
-    // Línea de referencia al 90%
-    const dangerY = this.canvas.height - maxAllowedHeight
-    
-    this.ctx.save()
-    
-    // Línea de peligro (90% de altura)
-    this.ctx.strokeStyle = '#FF0000'
-    this.ctx.lineWidth = 3
-    this.ctx.setLineDash([10, 5])
-    
-    this.ctx.beginPath()
-    this.ctx.moveTo(0, dangerY)
-    this.ctx.lineTo(this.canvas.width, dangerY)
-    this.ctx.stroke()
-    
-    // Línea del montón actual (verde si seguro, amarilla si cerca del peligro)
-    if (staticPileHeight > 0) {
-      const pileY = this.canvas.height - staticPileHeight
-      const dangerRatio = staticPileHeight / maxAllowedHeight
-      
-      if (dangerRatio > 0.8) {
-        this.ctx.strokeStyle = '#FFA500' // Naranja - peligro
-      } else if (dangerRatio > 0.6) {
-        this.ctx.strokeStyle = '#FFFF00' // Amarillo - advertencia  
-      } else {
-        this.ctx.strokeStyle = '#00FF00' // Verde - seguro
-      }
-      
-      this.ctx.setLineDash([5, 3])
-      this.ctx.lineWidth = 2
-      
-      this.ctx.beginPath()
-      this.ctx.moveTo(0, pileY)
-      this.ctx.lineTo(this.canvas.width, pileY)
-      this.ctx.stroke()
-    }
-    
-    this.ctx.setLineDash([])
-    this.ctx.restore()
+    return
   }
   
   drawBubble(body) {
@@ -495,24 +395,24 @@ export class GamePhysics {
     this.ctx.stroke()
     
     this.ctx.fillStyle = 'white'
-    const fontSize = Math.min(20 + fusionLevel * 3, 40) // Tipografía más grande: base 20px, hasta 40px
+    const fontSize = Math.min(20 + fusionLevel * 3, 40)
     this.ctx.font = `bold ${fontSize}px sans-serif`
     this.ctx.textAlign = 'center'
     this.ctx.textBaseline = 'middle'
     this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)'
-    this.ctx.lineWidth = Math.min(4 + fusionLevel, 8) // Contorno más grueso también
+    this.ctx.lineWidth = Math.min(4 + fusionLevel, 8)
     this.ctx.strokeText(body.value.toString(), 0, 0)
     this.ctx.fillText(body.value.toString(), 0, 0)
     
     if (body.value === 6 || body.value === 9) {
-      const underlineY = fontSize * 0.5 // Posición debajo del número
-      const underlineWidth = fontSize * 0.6 // Ancho de la rayita
+      const underlineY = fontSize * 0.5
+      const underlineWidth = fontSize * 0.6
       
       this.ctx.beginPath()
       this.ctx.moveTo(-underlineWidth / 2, underlineY)
       this.ctx.lineTo(underlineWidth / 2, underlineY)
       this.ctx.strokeStyle = 'white'
-      this.ctx.lineWidth = Math.max(2, fontSize * 0.08) // Grosor proporcional
+      this.ctx.lineWidth = Math.max(2, fontSize * 0.08)
       this.ctx.stroke()
     }
     
@@ -525,7 +425,6 @@ export class GamePhysics {
     this.render.options.width = width
     this.render.options.height = height
     
-    // Actualizar línea de peligro con nuevas dimensiones
     this.updateDangerLine()
     
     const bodies = Matter.Composite.allBodies(this.world)
