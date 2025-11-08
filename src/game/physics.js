@@ -220,6 +220,37 @@ export class GamePhysics {
             return
         }
 
+        // Si ambos son burbujas reloj
+        if (bubbleA.isClock && bubbleB.isClock) {
+            // Mostrar contador visual y pausar el juego
+            bubbleA.clockTimer = 5;
+            bubbleB.clockTimer = 5;
+            this.isClockPauseActive = true;
+            if (typeof this.onPauseGame === 'function') {
+                this.onPauseGame(5000)
+            }
+            if (this.audioManager && this.audioManager.playClockSound) {
+                this.audioManager.playClockSound()
+            }
+            // Iniciar cuenta regresiva visual
+            let timer = 5;
+            const countdownInterval = setInterval(() => {
+                timer--;
+                bubbleA.clockTimer = timer;
+                bubbleB.clockTimer = timer;
+                if (timer <= 0) {
+                    clearInterval(countdownInterval);
+                    Matter.World.remove(this.world, [bubbleA, bubbleB]);
+                    this.isClockPauseActive = false;
+                    if (typeof this.onBubbleFusion === 'function') {
+                        this.onBubbleFusion('⏰', '⏰', 'TIME', 0, false, false, bubbleA.position.x, bubbleA.position.y);
+                    }
+                }
+            }, 1000);
+            this.clearSelection();
+            return;
+        }
+
         const sum = bubbleA.value + bubbleB.value
 
         if (sum % 10 === 0 && sum >= 10 && sum <= 100) {
@@ -425,12 +456,22 @@ export class GamePhysics {
 
         const bodies = Matter.Composite.allBodies(this.world)
 
+
+        // Primero dibujar burbujas normales
         bodies.forEach(body => {
-            if (body.isBubble && !body.isBomb) {
+            if (body.isBubble && !body.isBomb && !body.isClock) {
                 this.drawBubble(body)
             }
         })
 
+        // Luego dibujar burbujas reloj por encima
+        bodies.forEach(body => {
+            if (body.isBubble && body.isClock) {
+                this.drawBubble(body)
+            }
+        })
+
+        // Finalmente dibujar bombas por encima
         bodies.forEach(body => {
             if (body.isBubble && body.isBomb) {
                 this.drawBubble(body)
@@ -503,6 +544,35 @@ export class GamePhysics {
             const timerY = 0
             this.ctx.strokeText(body.bombTimer.toString(), 0, timerY)
             this.ctx.fillText(body.bombTimer.toString(), 0, timerY)
+
+        } else if (body.isClock) {
+            // Burbuja reloj: emoji grande y centrado, borde temporal para debug
+            this.ctx.globalAlpha = 1
+            // Borde temporal
+            this.ctx.strokeStyle = '#00ff00'
+            this.ctx.lineWidth = 4
+            this.ctx.beginPath()
+            this.ctx.arc(0, 0, radius, 0, Math.PI * 2)
+            this.ctx.stroke()
+
+            // Emoji grande
+            const emojiSize = radius * 2.4
+            this.ctx.font = `${emojiSize}px sans-serif`
+            this.ctx.textAlign = 'center'
+            this.ctx.textBaseline = 'middle'
+            this.ctx.fillStyle = 'black'
+            this.ctx.fillText('⏰', 0, 0)
+
+            // Contador visual encima
+            this.ctx.fillStyle = '#ffffff'
+            this.ctx.strokeStyle = '#000000'
+            this.ctx.lineWidth = 2
+            const timerFontSize = radius * 1.1
+            this.ctx.font = `bold ${timerFontSize}px sans-serif`
+            const timerY = -radius * 1.1
+            const timerValue = body.clockTimer !== undefined ? body.clockTimer.toString() : ''
+            this.ctx.strokeText(timerValue, 0, timerY)
+            this.ctx.fillText(timerValue, 0, timerY)
 
         } else if (isExploding) {
             const gradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, radius)

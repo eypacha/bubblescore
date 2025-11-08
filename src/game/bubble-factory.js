@@ -35,16 +35,41 @@ export class BubbleFactory {
     const x = Math.random() * (width - 100) + 50
     const y = -50
     const radius = 30
-    
-    // Determinar si crear una bomba
-     this.bombCounter++ // Increment bomb counter
-     const shouldCreateBomb = this.bombCounter >= this.bombSpawnRate && Math.random() < 0.3 // Allow multiple bombs
-    
-    if (shouldCreateBomb) {
+    // Determinar si crear una bomba o una burbuja reloj
+    this.bombCounter++ // Increment bomb counter
+    const shouldCreateBomb = this.bombCounter >= this.bombSpawnRate && Math.random() < 0.3 // Allow multiple bombs
+    const shouldCreateClock = Math.random() < 0.07 // 7% de probabilidad
+    if (shouldCreateClock) {
+      return this.createClockBubble(x, y, radius)
+    } else if (shouldCreateBomb) {
       return this.createBomb(x, y, radius)
     } else {
       return this.createNormalBubble(x, y, radius)
     }
+  }
+
+  createClockBubble(x, y, radius) {
+  // Burbuja especial tipo reloj, estilo bomba: más grande visualmente, pero con colisión más pequeña
+  const visualRadius = radius + 5
+  const collisionRadius = Math.max(radius * 0.85, 24)
+    const bubble = Matter.Bodies.circle(x, y, collisionRadius, {
+      restitution: 0.6,
+      friction: 0.3,
+      frictionAir: 0.01,
+      render: {
+        fillStyle: 'transparent',
+        strokeStyle: 'transparent',
+        lineWidth: 0
+      },
+      isBubble: true,
+      isClock: true,
+      hasCollided: false,
+      value: '⏰',
+      color: { fill: 'transparent', stroke: 'transparent', name: 'clock' },
+      clockTimer: 5 // segundos de cuenta regresiva
+    })
+    Matter.World.add(this.world, bubble)
+    return bubble
   }
 
   createNormalBubble(x, y, radius) {
