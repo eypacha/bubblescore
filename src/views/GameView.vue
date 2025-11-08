@@ -134,8 +134,8 @@ const startBubbleGeneration = () => {
 }
 // Incrementa la velocidad de aparición de burbujas con cada nivel
 function onLevelUp(newLevel) {
-  // Reduce el intervalo un 8% por nivel, mínimo 600ms
-  bubbleSpawnInterval = Math.max(600, Math.floor(bubbleSpawnInterval * 0.92));
+  // Reduce el intervalo un 5% por nivel, mínimo 600ms
+  bubbleSpawnInterval = Math.max(600, Math.floor(bubbleSpawnInterval * 0.95));
   if (bubbleInterval) {
     clearInterval(bubbleInterval);
     bubbleInterval = setInterval(() => {
