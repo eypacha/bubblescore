@@ -1,19 +1,35 @@
 <template>
-  <div class="game-container min-h-screen bg-gray-50 flex items-center justify-center">
-    <!-- Panel de puntaje -->
-    <div class="score-panel absolute top-4 left-4 bg-white rounded-lg shadow-lg p-4 border border-gray-200 z-10">
-      <div class="text-sm text-gray-500 font-medium uppercase tracking-wide">Puntaje</div>
-      <div class="text-3xl font-bold text-blue-600 mt-1">{{ score.toLocaleString() }}</div>
-      <div v-if="lastFusion.points > 0" class="text-xs text-green-600 font-medium mt-2 animate-pulse">
-        +{{ lastFusion.points }} pts ({{ lastFusion.fusion }})
+  <div class="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+    <div class="mb-4 w-full max-w-4xl md:flex-row md:items-center md:gap-0">
+      <div class="flex justify-between items-center flex-col gap-4 items-start md:flex-row md:gap-6 md:items-center">
+        <div class="flex items-center gap-6">
+          <div>
+            <div class="text-sm text-gray-500 font-medium uppercase tracking-wide">Puntaje</div>
+            <div class="text-3xl font-bold text-blue-600">{{ score.toLocaleString() }}</div>
+          </div>
+          <div v-if="lastFusion.points > 0" class="px-4 py-2 rounded-lg animate-custom-pulse" 
+               :class="lastFusion.colorBonus ? 'bg-yellow-100 border border-yellow-300' : 'bg-green-100 border border-green-300'">
+            <div class="text-sm font-medium" 
+                 :class="lastFusion.colorBonus ? 'text-yellow-700' : 'text-green-700'">
+              +{{ lastFusion.points }} pts • {{ lastFusion.fusion }}
+            </div>
+            <div v-if="lastFusion.colorBonus" class="text-xs text-yellow-600 font-bold flex items-center">
+              ⭐ BONUS MISMO COLOR ⭐
+            </div>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-sm text-gray-500 uppercase tracking-wide">Nivel</div>
+          <div class="text-3xl font-semibold text-gray-700">{{ Math.floor(score / 1000) + 1 }}</div>
+        </div>
       </div>
     </div>
 
     <!-- Canvas del juego centrado -->
-    <div class="canvas-wrapper">
+    <div class="transition-all duration-300 ease-in-out w-full md:w-auto">
       <canvas
         ref="gameCanvas"
-        class="border border-gray-300 rounded-lg shadow-lg bg-white cursor-pointer"
+        class="border border-gray-300 rounded-lg shadow-lg bg-white cursor-pointer hover:border-gray-500 block max-w-full h-auto"
         :width="canvasWidth"
         :height="canvasHeight"
         @click="createBubble"
@@ -26,6 +42,9 @@
         </p>
         <p class="text-gray-500 text-xs mb-1">
           Fusiones válidas: 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 • Los colores se mezclan
+        </p>
+        <p class="text-yellow-600 text-xs mb-1 font-semibold">
+          ⭐ BONUS: ¡Fusionar burbujas del mismo color da puntos extra! ⭐
         </p>
         <p class="text-gray-500 text-xs">
           Burbujas caen automáticamente • Haz clic para crear más • Arrastra para moverlas
@@ -48,6 +67,7 @@ const score = ref(0)
 const lastFusion = ref({
   points: 0,
   fusion: '',
+  colorBonus: false,
   timestamp: 0
 })
 
@@ -114,14 +134,16 @@ const initializeGame = () => {
     
     updateCanvasSize()
     
-    physicsEngine.onBubbleFusion = (valueA, valueB, sum, pointsEarned) => {
-      console.log(`¡Fusión exitosa! ${valueA} + ${valueB} = ${sum} (+${pointsEarned} pts)`)
+    physicsEngine.onBubbleFusion = (valueA, valueB, sum, pointsEarned, colorBonus) => {
+      const bonusText = colorBonus ? ' ¡MISMO COLOR!' : ''
+      console.log(`¡Fusión exitosa! ${valueA} + ${valueB} = ${sum} (+${pointsEarned} pts)${bonusText}`)
       score.value = physicsEngine.scoreManager.getScore()
       
       // Mostrar animación de puntos ganados
       lastFusion.value = {
         points: pointsEarned,
         fusion: `${valueA}+${valueB}=${sum}`,
+        colorBonus: colorBonus,
         timestamp: Date.now()
       }
       
@@ -130,7 +152,7 @@ const initializeGame = () => {
         clearTimeout(fusionAnimationTimeout)
       }
       fusionAnimationTimeout = setTimeout(() => {
-        lastFusion.value = { points: 0, fusion: '', timestamp: 0 }
+        lastFusion.value = { points: 0, fusion: '', colorBonus: false, timestamp: 0 }
       }, 3000)
     }
     
@@ -176,46 +198,3 @@ onMounted(() => {
   })
 })
 </script>
-
-<style scoped>
-.game-container {
-  background-color: #f9fafb;
-  position: relative;
-}
-
-.score-panel {
-  min-width: 180px;
-  backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
-}
-
-.score-panel:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-}
-
-.canvas-wrapper {
-  transition: all 0.3s ease;
-}
-
-canvas {
-  display: block;
-}
-
-canvas:hover {
-  border-color: #6B7280;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
-
-.animate-pulse {
-  animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-</style>

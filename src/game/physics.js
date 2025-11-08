@@ -226,8 +226,8 @@ export class GamePhysics {
       
       Matter.World.remove(this.world, [bubbleA, bubbleB])
       
-      const pointsEarned = this.scoreManager.addScore(bubbleA.value, bubbleB.value, sum)
-      this.onBubbleFusion?.(bubbleA.value, bubbleB.value, sum, pointsEarned)
+      const scoreResult = this.scoreManager.addScore(bubbleA.value, bubbleB.value, sum, bubbleA, bubbleB)
+      this.onBubbleFusion?.(bubbleA.value, bubbleB.value, sum, scoreResult.totalPoints, scoreResult.colorBonus)
     }
   }
   
