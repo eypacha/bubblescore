@@ -30,12 +30,15 @@
         ></canvas>
 
         <!-- Efectos de puntos flotantes dentro del canvas container -->
+                <!-- Efectos de puntos flotantes dentro del canvas container -->
         <FloatingScore
           v-for="floatingScore in floatingScores"
           :key="floatingScore.id"
           :points="floatingScore.points"
+          :fusion="floatingScore.fusion"
           :colorBonus="floatingScore.colorBonus"
           :isPerfectFusion="floatingScore.isPerfectFusion"
+          :isBombExplosion="floatingScore.isBombExplosion"
           :x="floatingScore.x"
           :y="floatingScore.y"
           :canvasWidth="canvasWidth"
@@ -203,6 +206,28 @@ const initializeGame = () => {
       console.log('¡GAME OVER!')
       isGameOver.value = true
       stopBubbleGeneration()
+    }
+    
+    physicsEngine.onBombExploded = (bombX, bombY) => {
+      console.log('💥 Bomba explotó en GameView!')
+      
+      // Crear efecto visual de explosión
+      const explosionEffect = {
+        id: nextFloatingId++,
+        points: 0,
+        fusion: '💥 ¡BOMBA EXPLOTÓ! 💥',
+        colorBonus: false,
+        isPerfectFusion: false,
+        isBombExplosion: true,
+        x: bombX,
+        y: bombY,
+        duration: 3000
+      }
+      
+      floatingScores.value.push(explosionEffect)
+      
+      // Aquí puedes agregar penalización de puntos si quieres
+      // score.value = Math.max(0, score.value - 100) // Ejemplo: -100 puntos
     }
     
     gameLoop()

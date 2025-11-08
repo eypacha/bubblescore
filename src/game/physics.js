@@ -220,6 +220,13 @@ export class GamePhysics {
 
   attemptFusion() {
     const [bubbleA, bubbleB] = this.selectedBubbles
+    
+    // Verificar si alguna de las burbujas es una bomba
+    if (bubbleA.isBomb || bubbleB.isBomb) {
+      this.clearSelection()
+      return
+    }
+    
     const sum = bubbleA.value + bubbleB.value
     
     if (sum % 10 === 0 && sum >= 10 && sum <= 100) {
@@ -251,6 +258,9 @@ export class GamePhysics {
       
       this.clearSelection()
     } else {
+      // Fusión inválida - decrementar timers de bombas
+      console.log('🚫 Fusión inválida:', bubbleA.value, '+', bubbleB.value, '=', sum)
+      this.decrementBombTimers()
       this.clearSelection()
     }
   }
@@ -281,6 +291,107 @@ export class GamePhysics {
     
     Matter.World.add(this.world, fusedBubble)
     return fusedBubble
+  }
+
+  decrementBombTimers() {
+    const bodies = Matter.Composite.allBodies(this.world)
+    const bombs = bodies.filter(body => body.isBomb)
+    
+    bombs.forEach(bomb => {
+      bomb.bombTimer--
+      
+      if (bomb.bombTimer <= 0) {
+        this.explodeBomb(bomb)
+      }
+    })
+  }
+
+  explodeBomb(bomb) {
+    // Crear animación de explosión física
+    this.createExplosionEffect(bomb)
+  }
+
+  createExplosionEffect(bomb) {
+    // Configurar la bomba para explosión
+    bomb.isExploding = true
+    bomb.originalRadius = bomb.circleRadius
+    bomb.explosionStartTime = Date.now()
+    bomb.explosionDuration = 250 // Reducido de 500ms a 250ms - ¡súper rápido!
+    bomb.maxExplosionRadius = bomb.originalRadius * 6 // Aumentado de 5x a 6x para compensar la velocidad
+    
+    // Cambiar color a naranja/amarillo para efecto visual
+    bomb.render.fillStyle = '#ff6600'
+    bomb.render.strokeStyle = '#ff0000'
+    bomb.render.lineWidth = 5
+    
+    // Iniciar loop de explosión
+    this.updateExplosion(bomb)
+  }
+
+  updateExplosion(bomb) {
+    if (!bomb.isExploding) return
+    
+    const currentTime = Date.now()
+    const elapsed = currentTime - bomb.explosionStartTime
+    const progress = Math.min(elapsed / bomb.explosionDuration, 1)
+    
+    // Función de aceleración ultra agresiva para explosión instantánea
+    const explosiveProgress = Math.pow(progress, 0.2) // Aún más rápido al inicio
+    const targetRadius = bomb.originalRadius + (bomb.maxExplosionRadius - bomb.originalRadius) * explosiveProgress
+    const currentRadius = bomb.circleRadius
+    
+    // Escalar más agresivamente
+    if (Math.abs(targetRadius - currentRadius) > 0.3) { // Reducido de 0.5 a 0.3 para más responsividad
+      const scaleFactor = targetRadius / currentRadius
+      Matter.Body.scale(bomb, scaleFactor, scaleFactor)
+    }
+    
+    // Aplicar fuerza de empuje a burbujas cercanas con máxima intensidad
+    this.applyExplosionForce(bomb, targetRadius, progress)
+    
+    if (progress >= 1) {
+      // Explosión completa - remover bomba
+      this.finishExplosion(bomb)
+    }
+  }
+
+  applyExplosionForce(bomb, explosionRadius, progress = 1) {
+    const bodies = Matter.Composite.allBodies(this.world)
+    const bubbles = bodies.filter(body => body.isBubble && !body.isExploding && body !== bomb)
+    
+    bubbles.forEach(bubble => {
+      const dx = bubble.position.x - bomb.position.x
+      const dy = bubble.position.y - bomb.position.y
+      const distance = Math.sqrt(dx * dx + dy * dy)
+      
+      // Solo afectar burbujas dentro del radio de explosión
+      if (distance < explosionRadius && distance > 0) {
+        // Calcular fuerza basada en la distancia y el progreso de la explosión
+        const forceIntensity = (explosionRadius - distance) / explosionRadius
+        // Máxima fuerza al inicio, casi instantánea
+        const progressMultiplier = Math.max(0.3, 1 - progress * 0.5)
+        const baseForce = 0.05 * forceIntensity * progressMultiplier // Duplicado de 0.025 a 0.05 - ¡explosión brutal!
+        
+        // Normalizar dirección
+        const forceX = (dx / distance) * baseForce
+        const forceY = (dy / distance) * baseForce
+        
+        // Aplicar fuerza
+        Matter.Body.applyForce(bubble, bubble.position, { x: forceX, y: forceY })
+      }
+    })
+  }
+
+  finishExplosion(bomb) {
+    // Remover la bomba del mundo
+    Matter.World.remove(this.world, bomb)
+    
+    // Notificar al bubble factory que la bomba fue removida
+    if (this.bubbleFactory) {
+      this.bubbleFactory.onBombRemoved()
+    }
+    
+    // No llamamos onBombExploded para evitar el mensaje flotante
   }
 
   getMousePosition(event) {
@@ -333,15 +444,33 @@ export class GamePhysics {
   
   customRender() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
-    
+
     this.drawDynamicDangerLine()
-    
+
     const bodies = Matter.Composite.allBodies(this.world)
-    
+    // Dibujar primero todas las burbujas normales
     bodies.forEach(body => {
-      if (body.isBubble) {
+      if (body.isBubble && !body.isBomb) {
         this.drawBubble(body)
       }
+    })
+    // Luego dibujar todas las bombas por encima
+    bodies.forEach(body => {
+      if (body.isBubble && body.isBomb) {
+        this.drawBubble(body)
+      }
+    })
+
+    // Actualizar explosiones en progreso
+    this.updateAllExplosions()
+  }
+
+  updateAllExplosions() {
+    const bodies = Matter.Composite.allBodies(this.world)
+    const explodingBombs = bodies.filter(body => body.isExploding)
+    
+    explodingBombs.forEach(bomb => {
+      this.updateExplosion(bomb)
     })
   }
 
@@ -356,45 +485,111 @@ export class GamePhysics {
     const fusionLevel = body.fusionLevel || 0
     const color = body.color || { fill: '#3B82F6', stroke: '#1E40AF' }
     const isSelected = body.isSelected || false
+    const isBomb = body.isBomb || false
+    const isExploding = body.isExploding || false
     
     this.ctx.save()
     this.ctx.translate(pos.x, pos.y)
     this.ctx.rotate(body.angle)
     
-    this.ctx.beginPath()
-    this.ctx.arc(0, 0, radius, 0, Math.PI * 2)
-    
-    this.ctx.fillStyle = color.fill
-    this.ctx.fill()
-    
-    this.ctx.strokeStyle = color.stroke
-    if (isSelected) {
-      this.ctx.lineWidth = 6
-    } else {
+    if (isBomb && !isExploding) {
+      // Renderizar bomba como emoji gigante sin círculo de fondo
+      this.ctx.globalAlpha = 1
+
+
+      // Solo dibujar borde de selección si está seleccionada
+      if (isSelected) {
+        this.ctx.strokeStyle = '#ffff00'
+        this.ctx.lineWidth = 6
+        this.ctx.beginPath()
+        this.ctx.arc(0, 0, radius, 0, Math.PI * 2)
+        this.ctx.stroke()
+      }
+
+  // Emoji de bomba grande que ocupe casi todo el radio
+  const emojiSize = radius * 2.4 // Aún más grande, cubre casi todo el área de colisión
+  this.ctx.font = `${emojiSize}px sans-serif`
+  this.ctx.textAlign = 'center'
+  this.ctx.textBaseline = 'middle'
+  this.ctx.fillStyle = 'black'
+  this.ctx.fillText('💣', 0, 0)
+
+      // Timer pequeño en la parte inferior
+      this.ctx.fillStyle = '#ffffff'
+      this.ctx.strokeStyle = '#000000'
       this.ctx.lineWidth = 2
-    }
-    this.ctx.stroke()
-    
-    this.ctx.fillStyle = 'white'
-    const fontSize = Math.min(20 + fusionLevel * 3, 40)
-    this.ctx.font = `bold ${fontSize}px sans-serif`
-    this.ctx.textAlign = 'center'
-    this.ctx.textBaseline = 'middle'
-    this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)'
-    this.ctx.lineWidth = Math.min(4 + fusionLevel, 8)
-    this.ctx.strokeText(body.value.toString(), 0, 0)
-    this.ctx.fillText(body.value.toString(), 0, 0)
-    
-    if (body.value === 6 || body.value === 9) {
-      const underlineY = fontSize * 0.5
-      const underlineWidth = fontSize * 0.6
+      const timerFontSize = radius * 1 // Mucho más grande para que el número sea muy visible
+      this.ctx.font = `bold ${timerFontSize}px sans-serif`
+      const timerY = 0 // Más arriba, centrado sobre el emoji
+      this.ctx.strokeText(body.bombTimer.toString(), 0, timerY)
+      this.ctx.fillText(body.bombTimer.toString(), 0, timerY)
+      
+    } else if (isExploding) {
+      // Efecto especial durante explosión - círculo de fuego
+      const gradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, radius)
+      gradient.addColorStop(0, '#ffff00') // Centro amarillo brillante
+      gradient.addColorStop(0.5, '#ff6600') // Naranja medio
+      gradient.addColorStop(1, '#ff0000') // Borde rojo
+      
+      this.ctx.fillStyle = gradient
+      this.ctx.strokeStyle = '#ffffff'
+      this.ctx.lineWidth = 8
+      
+      // Efecto de pulso
+      const pulseIntensity = Math.sin(Date.now() * 0.02) * 0.2 + 1
+      this.ctx.globalAlpha = 0.8 + pulseIntensity * 0.2
       
       this.ctx.beginPath()
-      this.ctx.moveTo(-underlineWidth / 2, underlineY)
-      this.ctx.lineTo(underlineWidth / 2, underlineY)
-      this.ctx.strokeStyle = 'white'
-      this.ctx.lineWidth = Math.max(2, fontSize * 0.08)
+      this.ctx.arc(0, 0, radius, 0, Math.PI * 2)
+      this.ctx.fill()
       this.ctx.stroke()
+      
+      // Mostrar texto de explosión
+      this.ctx.fillStyle = '#ffffff'
+      this.ctx.font = 'bold 20px sans-serif'
+      this.ctx.textAlign = 'center'
+      this.ctx.textBaseline = 'middle'
+      this.ctx.strokeStyle = '#000000'
+      this.ctx.lineWidth = 4
+      this.ctx.globalAlpha = 1
+      this.ctx.strokeText('BOOM!', 0, 0)
+      this.ctx.fillText('BOOM!', 0, 0)
+      
+    } else {
+      // Burbujas normales
+      this.ctx.fillStyle = color.fill
+      this.ctx.strokeStyle = color.stroke
+      this.ctx.lineWidth = isSelected ? 6 : 2
+      this.ctx.globalAlpha = 1
+      
+      this.ctx.beginPath()
+      this.ctx.arc(0, 0, radius, 0, Math.PI * 2)
+      this.ctx.fill()
+      this.ctx.stroke()
+      
+      // Renderizar número normal
+      this.ctx.fillStyle = 'white'
+      const fontSize = Math.min(20 + fusionLevel * 3, 40)
+      this.ctx.font = `bold ${fontSize}px sans-serif`
+      this.ctx.textAlign = 'center'
+      this.ctx.textBaseline = 'middle'
+      this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)'
+      this.ctx.lineWidth = Math.min(4 + fusionLevel, 8)
+      this.ctx.globalAlpha = 1
+      this.ctx.strokeText(body.value.toString(), 0, 0)
+      this.ctx.fillText(body.value.toString(), 0, 0)
+      
+      if (body.value === 6 || body.value === 9) {
+        const underlineY = fontSize * 0.5
+        const underlineWidth = fontSize * 0.6
+        
+        this.ctx.beginPath()
+        this.ctx.moveTo(-underlineWidth / 2, underlineY)
+        this.ctx.lineTo(underlineWidth / 2, underlineY)
+        this.ctx.strokeStyle = 'white'
+        this.ctx.lineWidth = Math.max(2, fontSize * 0.08)
+        this.ctx.stroke()
+      }
     }
     
     this.ctx.restore()

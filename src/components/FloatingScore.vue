@@ -8,20 +8,24 @@
       transform: 'translate(-50%, -50%)'
     }"
   >
-    <div 
+        <div 
       class="px-3 py-1 rounded-lg shadow-lg font-bold text-sm whitespace-nowrap"
       :class="[
+        isBombExplosion ? 'bg-red-600 text-white' :
         isPerfectFusion ? 'bg-purple-600 text-white' :
         colorBonus ? 'bg-yellow-500 text-white' : 'bg-green-500 text-white'
       ]"
     >
       <div class="text-center">
-        <div class="">+{{ points }}</div>
-        <div v-if="isPerfectFusion" class="text-sm font-bold">
-          100
+        <div v-if="!isBombExplosion">+{{ points }} pts</div>
+        <div class="text-xs">
+          {{ fusion }}
         </div>
-        <div v-else-if="colorBonus" class="text-sm font-bold">
-          COLOR
+        <div v-if="isPerfectFusion && !isBombExplosion" class="text-xs font-bold">
+          💯 ¡PERFECTA! 💯
+        </div>
+        <div v-else-if="colorBonus && !isBombExplosion" class="text-xs font-bold">
+          ⭐ MISMO COLOR ⭐
         </div>
       </div>
     </div>
@@ -36,11 +40,19 @@ const props = defineProps({
     type: Number,
     required: true
   },
+  fusion: {
+    type: String,
+    required: true
+  },
   colorBonus: {
     type: Boolean,
     default: false
   },
   isPerfectFusion: {
+    type: Boolean,
+    default: false
+  },
+  isBombExplosion: {
     type: Boolean,
     default: false
   },

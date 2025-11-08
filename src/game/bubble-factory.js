@@ -9,6 +9,11 @@ export class BubbleFactory {
     // Sistema de bolsas estilo Tetris
     this.valueBag = []
     this.fillBag()
+    
+    // Sistema de bombas
+    this.bombCounter = 0
+    this.bombSpawnRate = 10 // Una bomba cada 10 burbujas aproximadamente
+    this.bombInCanvas = false // Solo una bomba a la vez
   }
 
   fillBag() {
@@ -31,6 +36,19 @@ export class BubbleFactory {
     const x = Math.random() * (width - 100) + 50
     const y = -50
     const radius = 30
+    
+    // Determinar si crear una bomba
+    this.bombCounter++
+    const shouldCreateBomb = this.bombCounter >= this.bombSpawnRate && !this.bombInCanvas && Math.random() < 0.3
+    
+    if (shouldCreateBomb) {
+      return this.createBomb(x, y, radius)
+    } else {
+      return this.createNormalBubble(x, y, radius)
+    }
+  }
+
+  createNormalBubble(x, y, radius) {
     const selectedColor = this.colorManager.getRandomColor()
     const value = this.getNextValue()
     
@@ -53,9 +71,41 @@ export class BubbleFactory {
     return bubble
   }
 
+  createBomb(x, y, radius) {
+    this.bombCounter = 0 // Reset counter
+    this.bombInCanvas = true
+    
+    const bomb = Matter.Bodies.circle(x, y, radius + 5, { // Ligeramente más grande
+      restitution: 0.6,
+      friction: 0.3,
+      frictionAir: 0.01,
+      render: {
+        fillStyle: '#1a1a1a', // Negro oscuro
+        strokeStyle: '#ff4444', // Borde rojo
+        lineWidth: 3
+      },
+      isBubble: true,
+      isBomb: true,
+      hasCollided: false,
+      bombTimer: 3,
+      color: { fill: '#1a1a1a', stroke: '#ff4444', name: 'bomb' }
+    })
+    
+    Matter.World.add(this.world, bomb)
+    return bomb
+  }
+
+  onBombRemoved() {
+    this.bombInCanvas = false
+  }
+
   reset() {
     // Reiniciar la bolsa de valores para un nuevo juego
     this.valueBag = []
     this.fillBag()
+    
+    // Reiniciar sistema de bombas
+    this.bombCounter = 0
+    this.bombInCanvas = false
   }
 }
