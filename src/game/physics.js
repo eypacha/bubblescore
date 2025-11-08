@@ -217,8 +217,10 @@ export class GamePhysics {
         if (typeof this.onPauseGame === 'function') {
             this.onPauseGame(BUBBLE_TIMER)
         }
-        if (this.audioManager && this.audioManager.playClockSound) {
-            this.audioManager.playClockSound()
+        // Reproducir sonido ticking en loop mientras el reloj está activo
+        if (this.audioManager && this.audioManager.tickingSound) {
+            this.audioManager.tickingSound.loop(true);
+            this.audioManager.tickingSound.play();
         }
         let timer = BUBBLE_TIMER / 1000;
         const countdownInterval = setInterval(() => {
@@ -230,6 +232,11 @@ export class GamePhysics {
                 clearInterval(countdownInterval);
                 Matter.World.remove(this.world, [clockBubble]);
                 this.isClockPauseActive = false;
+                // Detener el sonido ticking
+                if (this.audioManager && this.audioManager.tickingSound) {
+                    this.audioManager.tickingSound.stop();
+                    this.audioManager.tickingSound.loop(false);
+                }
                 // Restaurar movimiento de burbujas
                 bodies.forEach(body => {
                     if (body.isBubble && body.isFrozen) {
@@ -635,15 +642,16 @@ export class GamePhysics {
             this.ctx.fillStyle = 'black'
             this.ctx.fillText('⏰', 0, 0)
 
-            this.ctx.fillStyle = (body.isSelected || this.isClockPauseActive) ? 'yellow' : '#ffffff'
-            this.ctx.strokeStyle = '#000000'
-            this.ctx.lineWidth = 2
-            const timerFontSize = radius * 1.1
-            this.ctx.font = `bold ${timerFontSize}px sans-serif`
-            const timerY = -radius * 1.1
-            const timerValue = body.clockTimer !== undefined ? body.clockTimer.toString() : ''
-            this.ctx.strokeText(timerValue, 0, timerY)
-            this.ctx.fillText(timerValue, 0, timerY)
+            // Número del timer sobre el reloj para debug
+            // this.ctx.fillStyle = (body.isSelected || this.isClockPauseActive) ? 'yellow' : '#ffffff'
+            // this.ctx.strokeStyle = '#000000'
+            // this.ctx.lineWidth = 2
+            // const timerFontSize = radius * 1.1
+            // this.ctx.font = `bold ${timerFontSize}px sans-serif`
+            // const timerY = -radius * 1.1
+            // const timerValue = body.clockTimer !== undefined ? body.clockTimer.toString() : ''
+            // this.ctx.strokeText(timerValue, 0, timerY)
+            // this.ctx.fillText(timerValue, 0, timerY)
 
         } else if (isExploding) {
             const gradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, radius)

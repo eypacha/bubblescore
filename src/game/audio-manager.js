@@ -44,7 +44,7 @@ export class AudioManager {
       })
     ];
 
-    this.tickingSound = new Howl({ src: ['/sounds/ticking.mp3'], volume: 0.7, preload: true });
+    this.tickingSound = new Howl({ src: ['/sounds/tick.mp3'], volume: 0.7, preload: true });
     this.bombSound = new Howl({ src: ['/sounds/bomb.mp3'], volume: 1, preload: true });
   }
 
