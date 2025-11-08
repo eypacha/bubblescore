@@ -299,7 +299,10 @@ export class GamePhysics {
     
     bombs.forEach(bomb => {
       bomb.bombTimer--
-      
+      // Sonido ticking cada vez que decrementa el timer
+      if (this.audioManager && this.audioManager.playTickingSound) {
+        this.audioManager.playTickingSound();
+      }
       if (bomb.bombTimer <= 0) {
         this.explodeBomb(bomb)
       }
@@ -307,6 +310,10 @@ export class GamePhysics {
   }
 
   explodeBomb(bomb) {
+    // Sonido de explosión
+    if (this.audioManager && this.audioManager.playBombSound) {
+      this.audioManager.playBombSound()
+    }
     // Crear animación de explosión física
     this.createExplosionEffect(bomb)
   }
@@ -316,7 +323,7 @@ export class GamePhysics {
     bomb.isExploding = true
     bomb.originalRadius = bomb.circleRadius
     bomb.explosionStartTime = Date.now()
-    bomb.explosionDuration = 250 // Reducido de 500ms a 250ms - ¡súper rápido!
+    bomb.explosionDuration = 60 // ¡Aún más rápido! Menos de la mitad
     bomb.maxExplosionRadius = bomb.originalRadius * 6 // Aumentado de 5x a 6x para compensar la velocidad
     
     // Cambiar color a naranja/amarillo para efecto visual

@@ -38,8 +38,8 @@ export class BubbleFactory {
     const radius = 30
     
     // Determinar si crear una bomba
-    this.bombCounter++
-    const shouldCreateBomb = this.bombCounter >= this.bombSpawnRate && !this.bombInCanvas && Math.random() < 0.3
+     this.bombCounter++ // Increment bomb counter
+     const shouldCreateBomb = this.bombCounter >= this.bombSpawnRate && Math.random() < 0.3 // Allow multiple bombs
     
     if (shouldCreateBomb) {
       return this.createBomb(x, y, radius)
