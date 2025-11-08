@@ -304,9 +304,7 @@ export class GamePhysics {
             if (this.audioManager && this.audioManager.playBombSound) {
                 this.audioManager.playBombSound()
             }
-            if (this.scoreManager && typeof this.scoreManager.subtractPoints === 'function') {
-                this.scoreManager.subtractPoints(1000);
-            }
+            this.scoreManager.subtractPoints(1000);
             this.createExplosionEffect(bomb)
     }
 
