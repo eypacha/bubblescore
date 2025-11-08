@@ -1,29 +1,7 @@
 <template>
   <div class="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-    <div class="mb-4 w-full max-w-4xl md:flex-row md:items-center md:gap-0">
-      <div class="flex justify-between items-center flex-col gap-4 items-start md:flex-row md:gap-6 md:items-center">
-        <div class="flex items-center gap-6">
-          <div>
-            <div class="text-sm text-gray-500 font-medium uppercase tracking-wide">Puntaje</div>
-            <div class="text-3xl font-bold text-blue-600">{{ score.toLocaleString() }}</div>
-          </div>
-          <div v-if="lastFusion.points > 0" class="px-4 py-2 rounded-lg animate-custom-pulse" 
-               :class="lastFusion.colorBonus ? 'bg-yellow-100 border border-yellow-300' : 'bg-green-100 border border-green-300'">
-            <div class="text-sm font-medium" 
-                 :class="lastFusion.colorBonus ? 'text-yellow-700' : 'text-green-700'">
-              +{{ lastFusion.points }} pts • {{ lastFusion.fusion }}
-            </div>
-            <div v-if="lastFusion.colorBonus" class="text-xs text-yellow-600 font-bold flex items-center">
-              ⭐ BONUS MISMO COLOR ⭐
-            </div>
-          </div>
-        </div>
-        <div class="text-right">
-          <div class="text-sm text-gray-500 uppercase tracking-wide">Nivel</div>
-          <div class="text-3xl font-semibold text-gray-700">{{ Math.floor(score / 1000) + 1 }}</div>
-        </div>
-      </div>
-    </div>
+    <!-- Panel de puntaje -->
+    <ScorePanel :score="score" :lastFusion="lastFusion" />
 
     <!-- Canvas del juego centrado -->
     <div class="transition-all duration-300 ease-in-out w-full md:w-auto relative">
@@ -36,82 +14,17 @@
         @click="createBubble"
       ></canvas>
 
-      <!-- Game Over Screen - Mismo tamaño que el canvas -->
-      <div v-show="isGameOver" 
-           class="absolute inset-0 bg-white bg-opacity-95 rounded-lg border border-gray-300 shadow-lg flex flex-col items-center justify-center p-6"
-           :style="{ width: canvasWidth + 'px', height: canvasHeight + 'px' }">>
-        
-        <!-- Título Game Over -->
-        <div class="text-center mb-8">
-          <div class="text-5xl mb-3">🎯</div>
-          <h2 class="text-2xl font-bold text-gray-800 mb-2">Game Over</h2>
-          <p class="text-gray-600 text-sm">Tu partida ha terminado</p>
-        </div>
-
-        <!-- Estadísticas -->
-        <div class="bg-gray-50 rounded-lg p-4 mb-6 w-full max-w-xs">
-          <div class="text-center space-y-3">
-            <div>
-              <div class="text-2xl font-bold text-blue-600">{{ score.toLocaleString() }}</div>
-              <div class="text-xs text-gray-500 uppercase tracking-wide">Puntaje Final</div>
-            </div>
-            <div class="border-t pt-3">
-              <div class="text-lg font-semibold text-gray-700">Nivel {{ Math.floor(score / 1000) + 1 }}</div>
-              <div class="text-xs text-gray-500">Alcanzado</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Mensaje -->
-        <div class="text-center mb-6">
-          <p class="text-gray-600 text-sm max-w-xs leading-relaxed">
-            <template v-if="score < 1000">
-              ¡Buen intento! Practica más para mejorar.
-            </template>
-            <template v-else-if="score < 5000">
-              ¡Excelente progreso! Dominas las fusiones.
-            </template>
-            <template v-else-if="score < 10000">
-              ¡Increíble! Eres un maestro.
-            </template>
-            <template v-else>
-              ¡LEGENDARIO! Maestría absoluta.
-            </template>
-          </p>
-        </div>
-
-        <!-- Botón de reinicio -->
-        <div class="flex flex-col gap-2 w-full max-w-xs">
-          <button 
-            @click="restartGame"
-            class="bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm">
-            Jugar de Nuevo
-          </button>
-          <div class="text-center mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
-            💡 Tip: Fusiona burbujas del mismo color para bonus
-          </div>
-        </div>
-      </div>
+      <!-- Game Over Screen -->
+      <GameOverScreen 
+        :isVisible="isGameOver"
+        :score="score"
+        :canvasWidth="canvasWidth"
+        :canvasHeight="canvasHeight"
+        @restart="restartGame"
+      />
       
-      <!-- Instrucciones simples -->
-      <div class="text-center mt-4">
-        <p class="text-gray-600 text-sm mb-2">
-          <strong>Objetivo:</strong> Haz que dos burbujas que sumen múltiplos de 10 colisionen para fusionarlas
-        </p>
-        <p class="text-gray-500 text-xs mb-1">
-          Fusiones válidas: 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 • Los colores se mezclan
-        </p>
-        <p class="text-yellow-600 text-xs mb-1 font-semibold">
-          ⭐ BONUS: ¡Fusionar burbujas del mismo color da puntos extra! ⭐
-        </p>
-        <p class="text-gray-500 text-xs">
-          Burbujas caen automáticamente • Haz clic para crear más • Arrastra para moverlas
-        </p>
-        <!-- Botón temporal para testing -->
-        <button @click="isGameOver = true; score = 1500" class="mt-2 px-3 py-1 bg-red-500 text-white text-xs rounded">
-          Test Game Over
-        </button>
-      </div>
+      <!-- Instrucciones del juego -->
+      <GameInstructions/>
     </div>
   </div>
 </template>
@@ -119,6 +32,9 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { GamePhysics } from '../game/physics.js'
+import ScorePanel from '../components/ScorePanel.vue'
+import GameOverScreen from '../components/GameOverScreen.vue'
+import GameInstructions from '../components/GameInstructions.vue'
 
 const gameCanvas = ref(null)
 const canvasWidth = ref(800)
