@@ -12,7 +12,7 @@ export class BubbleFactory {
     
     // Sistema de bombas
     this.bombCounter = 0
-    this.bombSpawnRate = 10 // Una bomba cada 10 burbujas aproximadamente
+  this.bombSpawnRate = 18 // Una bomba cada 18 burbujas aproximadamente
     this.bombInCanvas = false // Solo una bomba a la vez
   }
 
