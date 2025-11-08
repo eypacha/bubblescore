@@ -82,6 +82,20 @@ export class PhysicsEngine {
         preload: true
       })
     ]
+    
+    // Sonidos para primera colisión
+    this.dropSounds = [
+      new Howl({
+        src: ['/sounds/drop1.mp3'],
+        volume: 0.4,
+        preload: true
+      }),
+      new Howl({
+        src: ['/sounds/drop2.mp3'],
+        volume: 0.4,
+        preload: true
+      })
+    ]
   }
   
   setupCollisionDetection() {
@@ -92,12 +106,25 @@ export class PhysicsEngine {
       pairs.forEach(pair => {
         const { bodyA, bodyB } = pair
         
-        // Solo procesar colisiones entre burbujas
+        // Verificar primera colisión para ambas burbujas
+        this.checkFirstCollision(bodyA)
+        this.checkFirstCollision(bodyB)
+        
+        // Solo procesar colisiones entre burbujas para fusión
         if (bodyA.isBubble && bodyB.isBubble) {
           this.handleBubbleCollision(bodyA, bodyB)
         }
       })
     })
+  }
+  
+  checkFirstCollision(body) {
+    // Solo verificar burbujas que no sean paredes
+    if (body.isBubble && !body.hasCollided) {
+      body.hasCollided = true
+      this.playDropSound()
+      console.log(`Primera colisión de burbuja con valor ${body.value}`)
+    }
   }
   
   handleBubbleCollision(bubbleA, bubbleB) {
@@ -150,6 +177,7 @@ export class PhysicsEngine {
       // Propiedades personalizadas
       isBubble: true,
       isFused: true, // Marcar como fusionada
+      hasCollided: true, // Las burbujas fusionadas ya han colisionado
       fusionLevel: fusionLevel, // Nivel de fusión (1-10)
       value: value,
       color: fusedColor
@@ -436,6 +464,7 @@ export class PhysicsEngine {
       },
       // Propiedades personalizadas del juego
       isBubble: true,
+      hasCollided: false, // Para rastrear primera colisión
       value: Math.floor(Math.random() * 9) + 1, // Número del 1 al 9
       color: selectedColor // Guardar el color para uso posterior
     })
@@ -474,15 +503,6 @@ export class PhysicsEngine {
     this.ctx.save()
     this.ctx.translate(pos.x, pos.y)
     this.ctx.rotate(body.angle)
-    
-    // Efectos especiales para burbujas fusionadas
-    if (isFused) {
-      // Efecto de pulso más intenso según el nivel de fusión
-      const pulseIntensity = Math.min(0.05 + (fusionLevel * 0.02), 0.2) // Máximo 20%
-      const pulseSpeed = 0.003 + (fusionLevel * 0.001) // Más rápido para niveles altos
-      const pulseScale = 1 + Math.sin(Date.now() * pulseSpeed) * pulseIntensity
-      this.ctx.scale(pulseScale, pulseScale)
-    }
     
     // Dibujar el círculo con color plano
     this.ctx.beginPath()
@@ -587,5 +607,16 @@ export class PhysicsEngine {
     selectedSound.play()
     
     console.log(`Reproduciendo sonido: pop${randomIndex + 1}.mp3`)
+  }
+  
+  playDropSound() {
+    // Seleccionar aleatoriamente entre drop1.mp3 y drop2.mp3
+    const randomIndex = Math.floor(Math.random() * this.dropSounds.length)
+    const selectedSound = this.dropSounds[randomIndex]
+    
+    // Reproducir el sonido
+    selectedSound.play()
+    
+    console.log(`Reproduciendo sonido: drop${randomIndex + 1}.mp3`)
   }
 }
