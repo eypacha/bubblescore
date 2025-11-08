@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.80.0",
+    "howler": "^2.2.4",
     "matter-js": "^0.20.0",
     "mixbox": "^2.0.0",
     "pinia": "^3.0.4",

@@ -1,5 +1,6 @@
 import Matter from 'matter-js'
 import mixbox from 'mixbox'
+import { Howl } from 'howler'
 
 export class PhysicsEngine {
   constructor(canvas) {
@@ -53,6 +54,9 @@ export class PhysicsEngine {
     // Configurar detección de colisiones
     this.setupCollisionDetection()
     
+    // Configurar sonidos
+    this.setupSounds()
+    
     // Crear las paredes del canvas
     this.createWalls()
     
@@ -62,6 +66,22 @@ export class PhysicsEngine {
     Matter.Runner.run(this.runner, this.engine)
     
     console.log('Motor de física inicializado con sistema de fusión')
+  }
+  
+  setupSounds() {
+    // Configurar sonidos de fusión
+    this.popSounds = [
+      new Howl({
+        src: ['/sounds/pop1.mp3'],
+        volume: 0.5,
+        preload: true
+      }),
+      new Howl({
+        src: ['/sounds/pop2.mp3'], 
+        volume: 0.5,
+        preload: true
+      })
+    ]
   }
   
   setupCollisionDetection() {
@@ -88,6 +108,9 @@ export class PhysicsEngine {
     if (sum % 10 === 0 && sum >= 10 && sum <= 100) {
       console.log(`¡FUSIÓN! ${bubbleA.value} + ${bubbleB.value} = ${sum}`)
       console.log(`Colores: ${bubbleA.color.name} + ${bubbleB.color.name}`)
+      
+      // Reproducir sonido de fusión aleatorio
+      this.playFusionSound()
       
       // Calcular la posición de la nueva burbuja (punto medio)
       const newX = (bubbleA.position.x + bubbleB.position.x) / 2
@@ -553,5 +576,16 @@ export class PhysicsEngine {
     Matter.Render.stop(this.render)
     Matter.Runner.stop(this.runner)
     Matter.Engine.clear(this.engine)
+  }
+  
+  playFusionSound() {
+    // Seleccionar aleatoriamente entre pop1.mp3 y pop2.mp3
+    const randomIndex = Math.floor(Math.random() * this.popSounds.length)
+    const selectedSound = this.popSounds[randomIndex]
+    
+    // Reproducir el sonido
+    selectedSound.play()
+    
+    console.log(`Reproduciendo sonido: pop${randomIndex + 1}.mp3`)
   }
 }
