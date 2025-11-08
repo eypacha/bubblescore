@@ -69,6 +69,25 @@ export class GamePhysics {
     Matter.Render.run(this.render)
     this.runner = Matter.Runner.create()
     Matter.Runner.run(this.runner, this.engine)
+    this.setupCollisionEvents()
+  }
+
+  setupCollisionEvents() {
+    // Configurar eventos de colisión para sonidos de drop
+    Matter.Events.on(this.engine, 'collisionStart', (event) => {
+      event.pairs.forEach(pair => {
+        const { bodyA, bodyB } = pair
+        
+        // Verificar si hay una burbuja que no ha colisionado antes
+        if (bodyA.isBubble && !bodyA.hasCollided) {
+          bodyA.hasCollided = true
+          this.audioManager.playDropSound()
+        } else if (bodyB.isBubble && !bodyB.hasCollided) {
+          bodyB.hasCollided = true
+          this.audioManager.playDropSound()
+        }
+      })
+    })
   }
 
   updateDangerLine() {
@@ -134,6 +153,9 @@ export class GamePhysics {
     Matter.Runner.stop(this.runner)
     this.runner = Matter.Runner.create()
     Matter.Runner.run(this.runner, this.engine)
+    
+    // Reconfigurar eventos de colisión después de reiniciar el runner
+    this.setupCollisionEvents()
     
     // Limpiar canvas
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
