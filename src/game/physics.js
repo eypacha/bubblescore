@@ -175,6 +175,10 @@ export class GamePhysics {
             if (clickedBubble.isBomb) {
                 this.decrementBombTimers();
                 this.clearSelection();
+            } else if (clickedBubble.isClock) {
+                // Activar la mecánica de pausa directamente
+                this.activateClockPause(clickedBubble);
+                this.clearSelection();
             } else {
                 this.selectBubble(clickedBubble);
             }
@@ -195,6 +199,48 @@ export class GamePhysics {
                 this.attemptFusion()
             }
         }
+    }
+
+    activateClockPause(clockBubble) {
+        clockBubble.clockTimer = BUBBLE_TIMER / 1000;
+        this.isClockPauseActive = true;
+
+        const bodies = Matter.Composite.allBodies(this.world);
+        bodies.forEach(body => {
+            if (body.isBubble && !body.isBomb && !body.isClock) {
+                body.isFrozen = true;
+                body.savedVelocity = { x: body.velocity.x, y: body.velocity.y };
+                Matter.Body.setVelocity(body, { x: 0, y: 0 });
+            }
+        });
+
+        if (typeof this.onPauseGame === 'function') {
+            this.onPauseGame(BUBBLE_TIMER)
+        }
+        if (this.audioManager && this.audioManager.playClockSound) {
+            this.audioManager.playClockSound()
+        }
+        let timer = BUBBLE_TIMER / 1000;
+        const countdownInterval = setInterval(() => {
+            timer--;
+            clockBubble.clockTimer = timer;
+            if (timer <= 0) {
+                clearInterval(countdownInterval);
+                Matter.World.remove(this.world, [clockBubble]);
+                this.isClockPauseActive = false;
+                // Restaurar movimiento de burbujas
+                bodies.forEach(body => {
+                    if (body.isBubble && body.isFrozen) {
+                        Matter.Body.setVelocity(body, body.savedVelocity || { x: 0, y: 0 });
+                        body.isFrozen = false;
+                        body.savedVelocity = undefined;
+                    }
+                });
+                if (typeof this.onBubbleFusion === 'function') {
+                    this.onBubbleFusion('⏰', null, 'TIME', 0, false, false, clockBubble.position.x, clockBubble.position.y);
+                }
+            }
+        }, 1000);
     }
 
     deselectBubble(bubble) {
