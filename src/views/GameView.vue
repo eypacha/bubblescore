@@ -16,10 +16,6 @@
       </div>
     </div>
 
-  <!-- Debug: Mostrar intervalo de aparición de burbujas -->
-  <div class="fixed top-2 right-2 bg-yellow-100 text-yellow-900 px-3 py-1 rounded shadow text-xs z-50">
-    Intervalo de burbujas: {{ bubbleSpawnInterval }} ms
-  </div>
   <!-- Centered game canvas -->
     <div class="transition-all duration-300 ease-in-out w-full md:w-auto relative">
   <!-- Canvas container with relative position -->
