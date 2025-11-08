@@ -1,24 +1,24 @@
 <template>
   <div class="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-    <!-- Panel de puntaje - solo muestra el puntaje principal -->
+  <!-- Score panel - only shows main score -->
     <div class="p-4 mb-4 w-full max-w-4xl">
       <div class="flex justify-between items-center flex-col gap-4 items-start md:flex-row md:gap-6 md:items-center">
         <div class="flex items-center gap-6">
           <div>
-            <div class="text-sm text-gray-500 font-medium uppercase tracking-wide">Puntaje</div>
+            <div class="text-sm text-gray-500 font-medium uppercase tracking-wide">Score</div>
             <div class="text-3xl font-bold text-blue-600">{{ score.toLocaleString() }}</div>
           </div>
         </div>
         <div class="text-right">
-          <div class="text-xs text-gray-500 uppercase tracking-wide">Nivel</div>
+          <div class="text-xs text-gray-500 uppercase tracking-wide">Level</div>
           <div class="text-lg font-semibold text-gray-700">{{ Math.floor(score / 1000) + 1 }}</div>
         </div>
       </div>
     </div>
 
-    <!-- Canvas del juego centrado -->
+  <!-- Centered game canvas -->
     <div class="transition-all duration-300 ease-in-out w-full md:w-auto relative">
-      <!-- Canvas container con posición relativa -->
+  <!-- Canvas container with relative position -->
       <div class="relative inline-block">
         <canvas
           ref="gameCanvas"
@@ -29,8 +29,8 @@
           @click="createBubble"
         ></canvas>
 
-        <!-- Efectos de puntos flotantes dentro del canvas container -->
-                <!-- Efectos de puntos flotantes dentro del canvas container -->
+  <!-- Floating score effects inside the canvas container -->
+    <!-- Floating score effects inside the canvas container -->
         <FloatingScore
           v-for="floatingScore in floatingScores"
           :key="floatingScore.id"
@@ -48,7 +48,7 @@
         />
       </div>
 
-      <!-- Game Over Screen -->
+  <!-- Game Over Screen -->
       <GameOverScreen 
         :isVisible="isGameOver"
         :score="score"
@@ -57,7 +57,7 @@
         @restart="restartGame"
       />
       
-      <!-- Instrucciones del juego -->
+  <!-- Game instructions -->
       <GameInstructions/>
     </div>
   </div>

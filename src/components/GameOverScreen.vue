@@ -3,42 +3,42 @@
        class="absolute inset-0 bg-opacity-95 rounded-lg border border-gray-300 shadow-lg flex flex-col items-center justify-center p-6"
        :style="{ width: canvasWidth + 'px', height: canvasHeight + 'px' }">
     
-    <!-- Título Game Over -->
+    <!-- Title Game Over -->
     <div class="text-center mb-8">
       <div class="text-5xl mb-3">🎯</div>
-      <h2 class="text-2xl font-bold text-gray-800 mb-2">Game Over</h2>
-      <p class="text-gray-600 text-sm">Tu partida ha terminado</p>
+      <h2 class="text-4xl font-bold text-gray-800 mb-2">Game Over</h2>
     </div>
 
-    <!-- Estadísticas -->
+    <!-- Statistics -->
     <div class="bg-gray-50 rounded-lg p-4 mb-6 w-full max-w-xs">
       <div class="text-center space-y-3">
         <div>
           <div class="text-2xl font-bold text-blue-600">{{ score.toLocaleString() }}</div>
-          <div class="text-xs text-gray-500 uppercase tracking-wide">Puntaje Final</div>
+          <div class="text-xs text-gray-500 uppercase tracking-wide">Score:</div>
         </div>
         <div class="border-t pt-3">
-          <div class="text-lg font-semibold text-gray-700">Nivel {{ Math.floor(score / 1000) + 1 }}</div>
-          <div class="text-xs text-gray-500">Alcanzado</div>
+          <div class="text-lg font-semibold text-gray-700">Level {{ Math.floor(score / 1000) + 1 }}</div>
         </div>
       </div>
     </div>
 
-    <!-- Botón de reinicio -->
+    <!-- Restart button -->
     <div class="flex flex-col gap-2 w-full max-w-xs">
       <button 
         @click="$emit('restart')"
         class="bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm">
-        Jugar de Nuevo
+        Play Again
       </button>
       <div class="text-center mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
-        💡 Tip: Fusiona burbujas del mismo color para bonus
+        💡 Tip: {{ randomTip }}
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { ref } from 'vue'
+
 defineProps({
   isVisible: {
     type: Boolean,
@@ -59,4 +59,18 @@ defineProps({
 })
 
 defineEmits(['restart'])
+
+const tips = [
+  'Fuse bubbles of the same color for bonus.',
+  'Try to plan your moves ahead for bigger combos.',
+  'Bombs clear space but subtract points!',
+  'Bombs can clear space, use them wisely!',
+  'Higher levels mean faster bubbles. Stay sharp!',
+  'Multiples of 10 are the key to fusion.',
+  'Don’t let bubbles reach the danger line!',
+  'Perfect fusions give extra points!',
+  'Chain reactions can boost your score quickly.'
+]
+
+const randomTip = tips[Math.floor(Math.random() * tips.length)]
 </script>

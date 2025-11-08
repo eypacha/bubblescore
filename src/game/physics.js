@@ -304,9 +304,8 @@ export class GamePhysics {
             if (this.audioManager && this.audioManager.playBombSound) {
                 this.audioManager.playBombSound()
             }
-            // Penalización directa: restar 200 puntos al explotar bomba
             if (this.scoreManager && typeof this.scoreManager.subtractPoints === 'function') {
-                this.scoreManager.subtractPoints(200);
+                this.scoreManager.subtractPoints(1000);
             }
             this.createExplosionEffect(bomb)
     }
@@ -453,7 +452,17 @@ export class GamePhysics {
     }
 
     drawDynamicDangerLine() {
-        return
+    if (!this.dangerLineY || !this.ctx) return;
+    this.ctx.save();
+    this.ctx.beginPath();
+    this.ctx.moveTo(0, this.dangerLineY);
+    this.ctx.lineTo(this.canvas.width, this.dangerLineY);
+    this.ctx.strokeStyle = 'rgba(255,0,0,0.7)';
+    this.ctx.lineWidth = 4;
+    this.ctx.setLineDash([12, 8]);
+    this.ctx.stroke();
+    this.ctx.setLineDash([]);
+    this.ctx.restore();
     }
 
     drawBubble(body) {
