@@ -30,7 +30,7 @@
           :class="{ 'opacity-20': isGameOver }"
           :width="canvasWidth"
           :height="canvasHeight"
-          @click="createBubble"
+          @click="createBubble($event)"
         ></canvas>
 
   <!-- Floating score effects inside the canvas container -->
@@ -71,7 +71,6 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { GamePhysics } from '../game/physics.js'
 import { LEVEL_UP_SCORE } from '../game/constants.js'
-import ScorePanel from '../components/ScorePanel.vue'
 import GameOverScreen from '../components/GameOverScreen.vue'
 import GameInstructions from '../components/GameInstructions.vue'
 import FloatingScore from '../components/FloatingScore.vue'
@@ -93,10 +92,22 @@ let nextFloatingId = 0
 
 let bubbleSpawnInterval = 4000 // Empieza más lento
 
-const createBubble = () => {
-  if (physicsEngine && physicsEngine.bubbleFactory) {
-    physicsEngine.bubbleFactory.createBubble()
-  } 
+const createBubble = (event) => {
+  if (!physicsEngine) return;
+  // Si se pasa el evento, verifica si el click fue sobre una burbuja
+  if (event) {
+    const rect = gameCanvas.value.getBoundingClientRect();
+    const x = (event.clientX - rect.left) * (canvasWidth.value / rect.width);
+    const y = (event.clientY - rect.top) * (canvasHeight.value / rect.height);
+    const clickedBubble = physicsEngine.findBodyAtPosition(x, y);
+    if (clickedBubble && clickedBubble.isBubble) {
+      // No crear burbuja si el click fue sobre una burbuja
+      return;
+    }
+  }
+  if (physicsEngine.bubbleFactory) {
+    physicsEngine.bubbleFactory.createBubble();
+  }
 }
 
 const restartGame = () => {
