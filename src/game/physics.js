@@ -525,7 +525,9 @@ export class GamePhysics {
 
         this.ctx.save()
         this.ctx.translate(pos.x, pos.y)
-        this.ctx.rotate(body.angle)
+        if (!body.isClock) {
+            this.ctx.rotate(body.angle)
+        }
 
         if (isBomb && !isExploding) {
             this.ctx.globalAlpha = 1
@@ -563,7 +565,7 @@ export class GamePhysics {
             this.ctx.fillStyle = 'black'
             this.ctx.fillText('⏰', 0, 0)
 
-            this.ctx.fillStyle = body.isSelected ? 'yellow' : '#ffffff'
+            this.ctx.fillStyle = (body.isSelected || this.isClockPauseActive) ? 'yellow' : '#ffffff'
             this.ctx.strokeStyle = '#000000'
             this.ctx.lineWidth = 2
             const timerFontSize = radius * 1.1
