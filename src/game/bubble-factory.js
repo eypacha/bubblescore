@@ -49,8 +49,6 @@ export class BubbleFactory {
   }
 
   createClockBubble(x, y, radius) {
-  // Burbuja especial tipo reloj, estilo bomba: más grande visualmente, pero con colisión más pequeña
-  const visualRadius = radius + 5
   const collisionRadius = Math.max(radius * 0.85, 24)
     const bubble = Matter.Bodies.circle(x, y, collisionRadius, {
       restitution: 0.6,
@@ -66,7 +64,7 @@ export class BubbleFactory {
       hasCollided: false,
       value: '⏰',
       color: { fill: 'transparent', stroke: 'transparent', name: 'clock' },
-      clockTimer: 5 // segundos de cuenta regresiva
+      clockTimer: BUBBLE_TIMER / 1000
     })
     Matter.World.add(this.world, bubble)
     return bubble

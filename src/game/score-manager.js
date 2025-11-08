@@ -33,7 +33,7 @@ export class ScoreManager {
     
     let colorBonus = 0
     if (bubbleA && bubbleB && this.isSameColor(bubbleA.color, bubbleB.color)) {
-      colorBonus = fusionSum * COLOR_BONUS_MULTIPLIER 
+      colorBonus = fusionSum * COLOR_BONUS_MULTIPLIER // 2x el bonus normal
       bonus += colorBonus
     }
     

@@ -17,7 +17,7 @@
           <div class="text-xs text-gray-500 uppercase tracking-wide">Score:</div>
         </div>
         <div class="border-t pt-3">
-          <div class="text-lg font-semibold text-gray-700">Level {{ Math.floor(score / 1000) + 1 }}</div>
+          <div class="text-lg font-semibold text-gray-700">Level {{ Math.floor(score / LEVEL_UP_SCORE) + 1 }}</div>
         </div>
       </div>
     </div>
@@ -38,6 +38,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import { LEVEL_UP_SCORE } from '../game/constants.js'
 
 defineProps({
   isVisible: {

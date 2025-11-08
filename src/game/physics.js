@@ -222,8 +222,8 @@ export class GamePhysics {
         }
 
         if (bubbleA.isClock && bubbleB.isClock) {
-            bubbleA.clockTimer = BUBBLE_TIMER;
-            bubbleB.clockTimer = BUBBLE_TIMER;
+            bubbleA.clockTimer = BUBBLE_TIMER / 1000;
+            bubbleB.clockTimer = BUBBLE_TIMER / 1000;
             this.isClockPauseActive = true;
 
             const bodies = Matter.Composite.allBodies(this.world);
@@ -241,7 +241,7 @@ export class GamePhysics {
             if (this.audioManager && this.audioManager.playClockSound) {
                 this.audioManager.playClockSound()
             }
-            let timer = BUBBLE_TIMER;
+            let timer = BUBBLE_TIMER / 1000;
             const countdownInterval = setInterval(() => {
                 timer--;
                 bubbleA.clockTimer = timer;
