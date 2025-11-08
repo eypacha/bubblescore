@@ -26,14 +26,72 @@
     </div>
 
     <!-- Canvas del juego centrado -->
-    <div class="transition-all duration-300 ease-in-out w-full md:w-auto">
+    <div class="transition-all duration-300 ease-in-out w-full md:w-auto relative">
       <canvas
         ref="gameCanvas"
         class="border border-gray-300 rounded-lg shadow-lg bg-white cursor-pointer hover:border-gray-500 block max-w-full h-auto"
+        :class="{ 'opacity-20': isGameOver }"
         :width="canvasWidth"
         :height="canvasHeight"
         @click="createBubble"
       ></canvas>
+
+      <!-- Game Over Screen - Mismo tamaño que el canvas -->
+      <div v-show="isGameOver" 
+           class="absolute inset-0 bg-white bg-opacity-95 rounded-lg border border-gray-300 shadow-lg flex flex-col items-center justify-center p-6"
+           :style="{ width: canvasWidth + 'px', height: canvasHeight + 'px' }">>
+        
+        <!-- Título Game Over -->
+        <div class="text-center mb-8">
+          <div class="text-5xl mb-3">🎯</div>
+          <h2 class="text-2xl font-bold text-gray-800 mb-2">Game Over</h2>
+          <p class="text-gray-600 text-sm">Tu partida ha terminado</p>
+        </div>
+
+        <!-- Estadísticas -->
+        <div class="bg-gray-50 rounded-lg p-4 mb-6 w-full max-w-xs">
+          <div class="text-center space-y-3">
+            <div>
+              <div class="text-2xl font-bold text-blue-600">{{ score.toLocaleString() }}</div>
+              <div class="text-xs text-gray-500 uppercase tracking-wide">Puntaje Final</div>
+            </div>
+            <div class="border-t pt-3">
+              <div class="text-lg font-semibold text-gray-700">Nivel {{ Math.floor(score / 1000) + 1 }}</div>
+              <div class="text-xs text-gray-500">Alcanzado</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mensaje -->
+        <div class="text-center mb-6">
+          <p class="text-gray-600 text-sm max-w-xs leading-relaxed">
+            <template v-if="score < 1000">
+              ¡Buen intento! Practica más para mejorar.
+            </template>
+            <template v-else-if="score < 5000">
+              ¡Excelente progreso! Dominas las fusiones.
+            </template>
+            <template v-else-if="score < 10000">
+              ¡Increíble! Eres un maestro.
+            </template>
+            <template v-else>
+              ¡LEGENDARIO! Maestría absoluta.
+            </template>
+          </p>
+        </div>
+
+        <!-- Botón de reinicio -->
+        <div class="flex flex-col gap-2 w-full max-w-xs">
+          <button 
+            @click="restartGame"
+            class="bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm">
+            Jugar de Nuevo
+          </button>
+          <div class="text-center mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
+            💡 Tip: Fusiona burbujas del mismo color para bonus
+          </div>
+        </div>
+      </div>
       
       <!-- Instrucciones simples -->
       <div class="text-center mt-4">
@@ -49,6 +107,10 @@
         <p class="text-gray-500 text-xs">
           Burbujas caen automáticamente • Haz clic para crear más • Arrastra para moverlas
         </p>
+        <!-- Botón temporal para testing -->
+        <button @click="isGameOver = true; score = 1500" class="mt-2 px-3 py-1 bg-red-500 text-white text-xs rounded">
+          Test Game Over
+        </button>
       </div>
     </div>
   </div>
@@ -64,6 +126,7 @@ const canvasHeight = ref(600)
 
 // Estado del puntaje
 const score = ref(0)
+const isGameOver = ref(false) // Cambiado a false para que inicie el juego normal
 const lastFusion = ref({
   points: 0,
   fusion: '',
@@ -82,6 +145,42 @@ const createBubble = () => {
   if (physicsEngine && physicsEngine.bubbleFactory) {
     physicsEngine.bubbleFactory.createBubble()
   }
+}
+
+const restartGame = () => {
+  // Resetear estados de Vue
+  isGameOver.value = false
+  score.value = 0
+  lastFusion.value = { points: 0, fusion: '', colorBonus: false, timestamp: 0 }
+  
+  // Limpiar timeouts
+  if (fusionAnimationTimeout) {
+    clearTimeout(fusionAnimationTimeout)
+    fusionAnimationTimeout = null
+  }
+  
+  // Detener generación actual de burbujas
+  stopBubbleGeneration()
+  
+  // Reiniciar el motor de física
+  if (physicsEngine) {
+    physicsEngine.isGameOver = false
+    physicsEngine.bubbles = []
+    if (physicsEngine.scoreManager) {
+      physicsEngine.scoreManager.reset()
+    }
+    
+    // Limpiar el canvas
+    const ctx = physicsEngine.ctx
+    if (ctx) {
+      ctx.clearRect(0, 0, canvasWidth.value, canvasHeight.value)
+    }
+  }
+  
+  // Reiniciar generación de burbujas después de un pequeño delay
+  setTimeout(() => {
+    startBubbleGeneration()
+  }, 300)
 }
 
 const startBubbleGeneration = () => {
@@ -162,10 +261,8 @@ const initializeGame = () => {
     
     physicsEngine.onGameOver = () => {
       console.log('¡GAME OVER!')
+      isGameOver.value = true
       stopBubbleGeneration()
-      // Resetear el puntaje si se quiere empezar de nuevo
-      // physicsEngine.scoreManager.reset()
-      // score.value = 0
     }
     
     gameLoop()

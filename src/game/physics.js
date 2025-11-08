@@ -425,55 +425,6 @@ export class GamePhysics {
         this.drawBubble(body)
       }
     })
-    
-    // Dibujar pantalla de Game Over si el juego terminó
-    if (this.isGameOver) {
-      this.drawGameOverScreen()
-    }
-  }
-
-  drawGameOverScreen() {
-    const centerX = this.canvas.width / 2
-    const centerY = this.canvas.height / 2
-    
-    this.ctx.save()
-    
-    // Fondo semi-transparente
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)'
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
-    
-    // Recuadro principal
-    const boxWidth = Math.min(400, this.canvas.width * 0.8)
-    const boxHeight = Math.min(200, this.canvas.height * 0.4)
-    const boxX = centerX - boxWidth / 2
-    const boxY = centerY - boxHeight / 2
-    
-    // Fondo del recuadro
-    this.ctx.fillStyle = '#FF4444'
-    this.ctx.fillRect(boxX, boxY, boxWidth, boxHeight)
-    
-    // Borde del recuadro
-    this.ctx.strokeStyle = '#FFFFFF'
-    this.ctx.lineWidth = 4
-    this.ctx.strokeRect(boxX, boxY, boxWidth, boxHeight)
-    
-    // Texto "GAME OVER"
-    this.ctx.fillStyle = '#FFFFFF'
-    this.ctx.font = 'bold 48px Arial'
-    this.ctx.textAlign = 'center'
-    this.ctx.textBaseline = 'middle'
-    this.ctx.fillText('GAME OVER', centerX, centerY - 20)
-    
-    // Texto secundario
-    this.ctx.font = '20px Arial'
-    this.ctx.fillText('Las burbujas alcanzaron el límite', centerX, centerY + 20)
-    
-    // Texto de reinicio
-    this.ctx.font = '16px Arial'
-    this.ctx.fillStyle = '#FFCCCC'
-    this.ctx.fillText('Recarga la página para jugar de nuevo', centerX, centerY + 50)
-    
-    this.ctx.restore()
   }
 
   drawDynamicDangerLine() {
