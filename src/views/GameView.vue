@@ -82,6 +82,7 @@ const restartGame = () => {
   if (physicsEngine) {
     physicsEngine.isGameOver = false
     physicsEngine.bubbles = []
+    physicsEngine.clearSelection()
     if (physicsEngine.scoreManager) {
       physicsEngine.scoreManager.reset()
     }

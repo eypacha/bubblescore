@@ -12,20 +12,21 @@ export class GamePhysics {
     this.isGameOver = false
     this.dangerLineY = null
     this.onGameOver = null
+    this.selectedBubbles = []
+    this.lastClickPosition = null
     
     this.initializePhysicsEngine()
     this.initializeAudio()
     this.initializeColors()
     this.initializeBubbleFactory()
     this.initializeScore()
-    this.setupMouseEvents()
-    this.setupCollisionDetection()
+    this.setupClickEvents()
     this.createWalls()
     this.startEngine()
     
     this.updateDangerLine()
     
-    console.log('Motor de física inicializado con sistema de fusión')
+    console.log('Motor de física inicializado con sistema de click')
   }
   
   initializePhysicsEngine() {
@@ -46,21 +47,6 @@ export class GamePhysics {
         showVelocity: false
       }
     })
-    
-    this.mouse = Matter.Mouse.create(this.canvas)
-    this.mouseConstraint = Matter.MouseConstraint.create(this.engine, {
-      mouse: this.mouse,
-      constraint: {
-        stiffness: 0.2,
-        render: {
-          visible: false
-        }
-      }
-    })
-    
-    Matter.World.add(this.world, this.mouseConstraint)
-    this.isDragging = false
-    this.draggedBody = null
   }
   
   initializeAudio() {
@@ -132,39 +118,63 @@ export class GamePhysics {
     }
   }
   
-  setupCollisionDetection() {
-    Matter.Events.on(this.engine, 'collisionStart', (event) => {
-      const pairs = event.pairs
-      
-      pairs.forEach(pair => {
-        const { bodyA, bodyB } = pair
-        
-        this.checkFirstCollision(bodyA)
-        this.checkFirstCollision(bodyB)
-        
-        if (bodyA.isBubble && bodyB.isBubble) {
-          this.handleBubbleCollision(bodyA, bodyB)
-        }
-      })
-    })
+  setupClickEvents() {
+    this.canvas.addEventListener('click', this.onBubbleClick.bind(this))
   }
-  
-  checkFirstCollision(body) {
-    if (body.isBubble && !body.hasCollided) {
-      body.hasCollided = true
-      this.audioManager.playDropSound()
+
+  onBubbleClick(event) {
+    if (this.isGameOver) return
+    
+    const mousePos = this.getMousePosition(event)
+    this.lastClickPosition = { x: mousePos.x, y: mousePos.y }
+    const clickedBubble = this.findBodyAtPosition(mousePos.x, mousePos.y)
+    
+    if (clickedBubble && clickedBubble.isBubble) {
+      this.selectBubble(clickedBubble)
     }
   }
-  
-  handleBubbleCollision(bubbleA, bubbleB) {
+
+  selectBubble(bubble) {
+    if (this.selectedBubbles.includes(bubble)) {
+      this.deselectBubble(bubble)
+      return
+    }
+
+    if (this.selectedBubbles.length < 2) {
+      this.selectedBubbles.push(bubble)
+      bubble.isSelected = true
+      
+      if (this.selectedBubbles.length === 2) {
+        this.attemptFusion()
+      }
+    }
+  }
+
+  deselectBubble(bubble) {
+    const index = this.selectedBubbles.indexOf(bubble)
+    if (index !== -1) {
+      this.selectedBubbles.splice(index, 1)
+      bubble.isSelected = false
+    }
+  }
+
+  clearSelection() {
+    this.selectedBubbles.forEach(bubble => {
+      bubble.isSelected = false
+    })
+    this.selectedBubbles = []
+    this.lastClickPosition = null
+  }
+
+  attemptFusion() {
+    const [bubbleA, bubbleB] = this.selectedBubbles
     const sum = bubbleA.value + bubbleB.value
     
     if (sum % 10 === 0 && sum >= 10 && sum <= 100) {
-      
       this.audioManager.playFusionSound()
       
-      const newX = (bubbleA.position.x + bubbleB.position.x) / 2
-      const newY = (bubbleA.position.y + bubbleB.position.y) / 2
+      const newX = this.lastClickPosition ? this.lastClickPosition.x : (bubbleA.position.x + bubbleB.position.x) / 2
+      const newY = this.lastClickPosition ? this.lastClickPosition.y : (bubbleA.position.y + bubbleB.position.y) / 2
       
       this.createFusedBubble(newX, newY, sum, bubbleA.color, bubbleB.color)
       
@@ -172,9 +182,13 @@ export class GamePhysics {
       
       const scoreResult = this.scoreManager.addScore(bubbleA.value, bubbleB.value, sum, bubbleA, bubbleB)
       this.onBubbleFusion?.(bubbleA.value, bubbleB.value, sum, scoreResult.totalPoints, scoreResult.colorBonus)
+      
+      this.clearSelection()
+    } else {
+      this.clearSelection()
     }
   }
-  
+
   createFusedBubble(x, y, value, colorA, colorB) {
     const baseRadius = 30
     const fusionLevel = value / 10
@@ -202,25 +216,7 @@ export class GamePhysics {
     Matter.World.add(this.world, fusedBubble)
     return fusedBubble
   }
-  
-  setupMouseEvents() {
-    this.canvas.addEventListener('touchstart', (e) => {
-      e.preventDefault()
-    }, { passive: false })
-    
-    this.canvas.addEventListener('touchmove', (e) => {
-      e.preventDefault()
-    }, { passive: false })
-    
-    this.canvas.addEventListener('mousedown', this.onMouseDown.bind(this))
-    this.canvas.addEventListener('mousemove', this.onMouseMove.bind(this))
-    this.canvas.addEventListener('mouseup', this.onMouseUp.bind(this))
-    
-    this.canvas.addEventListener('touchstart', this.onTouchStart.bind(this))
-    this.canvas.addEventListener('touchmove', this.onTouchMove.bind(this))
-    this.canvas.addEventListener('touchend', this.onTouchEnd.bind(this))
-  }
-  
+
   getMousePosition(event) {
     const rect = this.canvas.getBoundingClientRect()
     const scaleX = this.canvas.width / rect.width
@@ -231,19 +227,7 @@ export class GamePhysics {
       y: (event.clientY - rect.top) * scaleY
     }
   }
-  
-  getTouchPosition(event) {
-    const rect = this.canvas.getBoundingClientRect()
-    const scaleX = this.canvas.width / rect.width
-    const scaleY = this.canvas.height / rect.height
-    const touch = event.touches[0] || event.changedTouches[0]
-    
-    return {
-      x: (touch.clientX - rect.left) * scaleX,
-      y: (touch.clientY - rect.top) * scaleY
-    }
-  }
-  
+
   findBodyAtPosition(x, y) {
     const bodies = Matter.Composite.allBodies(this.world)
     for (let body of bodies) {
@@ -258,80 +242,7 @@ export class GamePhysics {
     }
     return null
   }
-  
-  onMouseDown(event) {
-    if (this.isGameOver) return
-    
-    const mousePos = this.getMousePosition(event)
-    const body = this.findBodyAtPosition(mousePos.x, mousePos.y)
-    
-    if (body) {
-      this.isDragging = true
-      this.draggedBody = body
-      
-      this.canvas.style.cursor = 'grabbing'
-      
-      Matter.Body.setStatic(body, true)
-    }
-  }
-  
-  onMouseMove(event) {
-    if (this.isGameOver) return
-    
-    if (this.isDragging && this.draggedBody) {
-      const mousePos = this.getMousePosition(event)
-      Matter.Body.setPosition(this.draggedBody, { x: mousePos.x, y: mousePos.y })
-    } else {
-      const mousePos = this.getMousePosition(event)
-      const body = this.findBodyAtPosition(mousePos.x, mousePos.y)
-      this.canvas.style.cursor = body ? 'grab' : 'default'
-    }
-  }
-  
-  onMouseUp(event) {
-    if (this.isDragging && this.draggedBody) {
-      Matter.Body.setStatic(this.draggedBody, false)
-      
-      const mousePos = this.getMousePosition(event)
-      const force = {
-        x: (mousePos.x - this.draggedBody.position.x) * 0.001,
-        y: (mousePos.y - this.draggedBody.position.y) * 0.001
-      }
-      Matter.Body.applyForce(this.draggedBody, this.draggedBody.position, force)
-      
-      this.isDragging = false
-      this.draggedBody = null
-      this.canvas.style.cursor = 'default'
-    }
-  }
-  
-  onTouchStart(event) {
-    const touchPos = this.getTouchPosition(event)
-    const body = this.findBodyAtPosition(touchPos.x, touchPos.y)
-    
-    if (body) {
-      this.isDragging = true
-      this.draggedBody = body
-      Matter.Body.setStatic(body, true)
-    }
-  }
-  
-  onTouchMove(event) {
-    if (this.isDragging && this.draggedBody) {
-      const touchPos = this.getTouchPosition(event)
-      Matter.Body.setPosition(this.draggedBody, { x: touchPos.x, y: touchPos.y })
-    }
-  }
-  
-  onTouchEnd(event) {
-    if (this.isDragging && this.draggedBody) {
-      Matter.Body.setStatic(this.draggedBody, false)
-      
-      this.isDragging = false
-      this.draggedBody = null
-    }
-  }
-  
+
   createWalls() {
     const { width, height } = this.canvas
     const wallThickness = 50
@@ -375,10 +286,10 @@ export class GamePhysics {
   drawBubble(body) {
     const pos = body.position
     const radius = body.circleRadius
-    const isBeingDragged = this.draggedBody === body
     const isFused = body.isFused || false
     const fusionLevel = body.fusionLevel || 0
     const color = body.color || { fill: '#3B82F6', stroke: '#1E40AF' }
+    const isSelected = body.isSelected || false
     
     this.ctx.save()
     this.ctx.translate(pos.x, pos.y)
@@ -390,8 +301,13 @@ export class GamePhysics {
     this.ctx.fillStyle = color.fill
     this.ctx.fill()
     
-    this.ctx.strokeStyle = color.stroke
-    this.ctx.lineWidth = 2
+    if (isSelected) {
+      this.ctx.strokeStyle = '#FFD700'
+      this.ctx.lineWidth = 4
+    } else {
+      this.ctx.strokeStyle = color.stroke
+      this.ctx.lineWidth = 2
+    }
     this.ctx.stroke()
     
     this.ctx.fillStyle = 'white'
@@ -434,12 +350,7 @@ export class GamePhysics {
   }
   
   destroy() {
-    this.canvas.removeEventListener('mousedown', this.onMouseDown.bind(this))
-    this.canvas.removeEventListener('mousemove', this.onMouseMove.bind(this))
-    this.canvas.removeEventListener('mouseup', this.onMouseUp.bind(this))
-    this.canvas.removeEventListener('touchstart', this.onTouchStart.bind(this))
-    this.canvas.removeEventListener('touchmove', this.onTouchMove.bind(this))
-    this.canvas.removeEventListener('touchend', this.onTouchEnd.bind(this))
+    this.canvas.removeEventListener('click', this.onBubbleClick.bind(this))
     
     Matter.Render.stop(this.render)
     Matter.Runner.stop(this.runner)
