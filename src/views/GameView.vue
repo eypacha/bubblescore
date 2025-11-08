@@ -154,7 +154,6 @@ const initializeGame = () => {
       console.log(`¡Fusión exitosa! ${valueA} + ${valueB} = ${sum} (+${pointsEarned} pts)${bonusText}`)
       score.value = physicsEngine.scoreManager.getScore()
       
-      // Mostrar animación de puntos ganados
       lastFusion.value = {
         points: pointsEarned,
         fusion: `${valueA}+${valueB}=${sum}`,
@@ -162,7 +161,6 @@ const initializeGame = () => {
         timestamp: Date.now()
       }
       
-      // Limpiar la animación después de 3 segundos
       if (fusionAnimationTimeout) {
         clearTimeout(fusionAnimationTimeout)
       }
@@ -187,27 +185,35 @@ const initializeGame = () => {
       startBubbleGeneration()
     }, 500)
   }
+}
+
+const updateCanvasSize = () => {
+  const maxWidth = Math.min(window.innerWidth - 40, 900)
+  const maxHeight = Math.min(window.innerHeight - 40, 600)
   
-  return () => {
-    window.removeEventListener('resize', updateCanvasSize)
-    stopBubbleGeneration()
-    if (animationId) {
-      cancelAnimationFrame(animationId)
-    }
-    if (fusionAnimationTimeout) {
-      clearTimeout(fusionAnimationTimeout)
-    }
-    if (physicsEngine) {
-      physicsEngine.destroy()
-    }
+  canvasWidth.value = maxWidth
+  canvasHeight.value = maxHeight
+  
+  if (physicsEngine) {
+    physicsEngine.resize(maxWidth, maxHeight)
   }
 }
 
 onMounted(() => {
-  const cleanup = initializeGame()
-  
-  onUnmounted(() => {
-    cleanup()
-  })
+  initializeGame()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateCanvasSize)
+  stopBubbleGeneration()
+  if (animationId) {
+    cancelAnimationFrame(animationId)
+  }
+  if (fusionAnimationTimeout) {
+    clearTimeout(fusionAnimationTimeout)
+  }
+  if (physicsEngine) {
+    physicsEngine.destroy()
+  }
 })
 </script>
