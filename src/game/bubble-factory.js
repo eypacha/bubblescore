@@ -71,7 +71,7 @@ export class BubbleFactory {
   }
 
   createBomb(x, y, radius) {
-    this.bombCounter = 0 \
+  this.bombCounter = 0
     
     const bomb = Matter.Bodies.circle(x, y, radius + 5, { 
       restitution: 0.6,
