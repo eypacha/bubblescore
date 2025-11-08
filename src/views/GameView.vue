@@ -1,5 +1,14 @@
 <template>
   <div class="game-container min-h-screen bg-gray-50 flex items-center justify-center">
+    <!-- Panel de puntaje -->
+    <div class="score-panel absolute top-4 left-4 bg-white rounded-lg shadow-lg p-4 border border-gray-200 z-10">
+      <div class="text-sm text-gray-500 font-medium uppercase tracking-wide">Puntaje</div>
+      <div class="text-3xl font-bold text-blue-600 mt-1">{{ score.toLocaleString() }}</div>
+      <div v-if="lastFusion.points > 0" class="text-xs text-green-600 font-medium mt-2 animate-pulse">
+        +{{ lastFusion.points }} pts ({{ lastFusion.fusion }})
+      </div>
+    </div>
+
     <!-- Canvas del juego centrado -->
     <div class="canvas-wrapper">
       <canvas
@@ -34,9 +43,18 @@ const gameCanvas = ref(null)
 const canvasWidth = ref(800)
 const canvasHeight = ref(600)
 
+// Estado del puntaje
+const score = ref(0)
+const lastFusion = ref({
+  points: 0,
+  fusion: '',
+  timestamp: 0
+})
+
 let physicsEngine = null
 let animationId = null
 let bubbleInterval = null
+let fusionAnimationTimeout = null
 
 const BUBBLE_SPAWN_INTERVAL = 2000 
 
@@ -67,6 +85,10 @@ const stopBubbleGeneration = () => {
 const gameLoop = () => {
   if (physicsEngine) {
     physicsEngine.customRender()
+    // Verificar game over solo si el juego no ha terminado
+    if (!physicsEngine.isGameOver) {
+      physicsEngine.checkGameOver()
+    }
   }
   animationId = requestAnimationFrame(gameLoop)
 }
@@ -92,7 +114,36 @@ const initializeGame = () => {
     
     updateCanvasSize()
     
-    physicsEngine.onBubbleFusion = (valueA, valueB, sum) => {
+    physicsEngine.onBubbleFusion = (valueA, valueB, sum, pointsEarned) => {
+      console.log(`¡Fusión exitosa! ${valueA} + ${valueB} = ${sum} (+${pointsEarned} pts)`)
+      score.value = physicsEngine.scoreManager.getScore()
+      
+      // Mostrar animación de puntos ganados
+      lastFusion.value = {
+        points: pointsEarned,
+        fusion: `${valueA}+${valueB}=${sum}`,
+        timestamp: Date.now()
+      }
+      
+      // Limpiar la animación después de 3 segundos
+      if (fusionAnimationTimeout) {
+        clearTimeout(fusionAnimationTimeout)
+      }
+      fusionAnimationTimeout = setTimeout(() => {
+        lastFusion.value = { points: 0, fusion: '', timestamp: 0 }
+      }, 3000)
+    }
+    
+    physicsEngine.scoreManager.onScoreUpdate = (newScore, pointsAdded) => {
+      score.value = newScore
+    }
+    
+    physicsEngine.onGameOver = () => {
+      console.log('¡GAME OVER!')
+      stopBubbleGeneration()
+      // Resetear el puntaje si se quiere empezar de nuevo
+      // physicsEngine.scoreManager.reset()
+      // score.value = 0
     }
     
     gameLoop()
@@ -107,6 +158,9 @@ const initializeGame = () => {
     stopBubbleGeneration()
     if (animationId) {
       cancelAnimationFrame(animationId)
+    }
+    if (fusionAnimationTimeout) {
+      clearTimeout(fusionAnimationTimeout)
     }
     if (physicsEngine) {
       physicsEngine.destroy()
@@ -126,6 +180,18 @@ onMounted(() => {
 <style scoped>
 .game-container {
   background-color: #f9fafb;
+  position: relative;
+}
+
+.score-panel {
+  min-width: 180px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.score-panel:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 
 .canvas-wrapper {
@@ -138,5 +204,18 @@ canvas {
 
 canvas:hover {
   border-color: #6B7280;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 </style>
