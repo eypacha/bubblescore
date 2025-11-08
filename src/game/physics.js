@@ -1,12 +1,42 @@
 import Matter from 'matter-js'
 import mixbox from 'mixbox'
-import { Howl } from 'howler'
+import { AudioManager } from './audio-manager.js'
 
 export class PhysicsEngine {
   constructor(canvas) {
     this.canvas = canvas
     this.ctx = canvas.getContext('2d')
     
+    // ============================================
+    // CONFIGURACIÓN DEL MOTOR DE FÍSICA
+    // ============================================
+    this.initializePhysicsEngine()
+    
+    // ============================================
+    // CONFIGURACIÓN DE AUDIO
+    // ============================================ 
+    this.initializeAudio()
+    
+    // ============================================
+    // CONFIGURACIÓN DE EVENTOS Y CONTROLES
+    // ============================================
+    this.setupMouseEvents()
+    this.setupCollisionDetection()
+    
+    // ============================================
+    // INICIALIZACIÓN DEL MUNDO DEL JUEGO
+    // ============================================
+    this.createWalls()
+    this.startEngine()
+    
+    console.log('Motor de física inicializado con sistema de fusión')
+  }
+  
+  // ============================================
+  // MÉTODOS DE INICIALIZACIÓN
+  // ============================================
+  
+  initializePhysicsEngine() {
     // Crear el motor de Matter.js
     this.engine = Matter.Engine.create()
     this.world = this.engine.world
@@ -17,11 +47,11 @@ export class PhysicsEngine {
     
     // Crear el renderer personalizado
     this.render = Matter.Render.create({
-      canvas: canvas,
+      canvas: this.canvas,
       engine: this.engine,
       options: {
-        width: canvas.width,
-        height: canvas.height,
+        width: this.canvas.width,
+        height: this.canvas.height,
         wireframes: false,
         background: 'transparent',
         showAngleIndicator: false,
@@ -30,7 +60,7 @@ export class PhysicsEngine {
     })
     
     // Crear mouse constraint para interacción
-    this.mouse = Matter.Mouse.create(canvas)
+    this.mouse = Matter.Mouse.create(this.canvas)
     this.mouseConstraint = Matter.MouseConstraint.create(this.engine, {
       mouse: this.mouse,
       constraint: {
@@ -47,56 +77,23 @@ export class PhysicsEngine {
     // Variables para el arrastre
     this.isDragging = false
     this.draggedBody = null
-    
-    // Eventos de mouse/touch
-    this.setupMouseEvents()
-    
-    // Configurar detección de colisiones
-    this.setupCollisionDetection()
-    
-    // Configurar sonidos
-    this.setupSounds()
-    
-    // Crear las paredes del canvas
-    this.createWalls()
-    
+  }
+  
+  initializeAudio() {
+    // Inicializar el manager de audio
+    this.audioManager = new AudioManager()
+  }
+  
+  startEngine() {
     // Iniciar el motor
     Matter.Render.run(this.render)
     this.runner = Matter.Runner.create()
     Matter.Runner.run(this.runner, this.engine)
-    
-    console.log('Motor de física inicializado con sistema de fusión')
   }
   
-  setupSounds() {
-    // Configurar sonidos de fusión
-    this.popSounds = [
-      new Howl({
-        src: ['/sounds/pop1.mp3'],
-        volume: 0.5,
-        preload: true
-      }),
-      new Howl({
-        src: ['/sounds/pop2.mp3'], 
-        volume: 0.5,
-        preload: true
-      })
-    ]
-    
-    // Sonidos para primera colisión
-    this.dropSounds = [
-      new Howl({
-        src: ['/sounds/drop1.mp3'],
-        volume: 0.4,
-        preload: true
-      }),
-      new Howl({
-        src: ['/sounds/drop2.mp3'],
-        volume: 0.4,
-        preload: true
-      })
-    ]
-  }
+  // ============================================
+  // SISTEMA DE COLISIONES Y LÓGICA DE JUEGO
+  // ============================================
   
   setupCollisionDetection() {
     // Escuchar eventos de colisión
@@ -122,7 +119,7 @@ export class PhysicsEngine {
     // Solo verificar burbujas que no sean paredes
     if (body.isBubble && !body.hasCollided) {
       body.hasCollided = true
-      this.playDropSound()
+      this.audioManager.playDropSound()
       console.log(`Primera colisión de burbuja con valor ${body.value}`)
     }
   }
@@ -137,7 +134,7 @@ export class PhysicsEngine {
       console.log(`Colores: ${bubbleA.color.name} + ${bubbleB.color.name}`)
       
       // Reproducir sonido de fusión aleatorio
-      this.playFusionSound()
+      this.audioManager.playFusionSound()
       
       // Calcular la posición de la nueva burbuja (punto medio)
       const newX = (bubbleA.position.x + bubbleB.position.x) / 2
@@ -596,27 +593,10 @@ export class PhysicsEngine {
     Matter.Render.stop(this.render)
     Matter.Runner.stop(this.runner)
     Matter.Engine.clear(this.engine)
-  }
-  
-  playFusionSound() {
-    // Seleccionar aleatoriamente entre pop1.mp3 y pop2.mp3
-    const randomIndex = Math.floor(Math.random() * this.popSounds.length)
-    const selectedSound = this.popSounds[randomIndex]
     
-    // Reproducir el sonido
-    selectedSound.play()
-    
-    console.log(`Reproduciendo sonido: pop${randomIndex + 1}.mp3`)
-  }
-  
-  playDropSound() {
-    // Seleccionar aleatoriamente entre drop1.mp3 y drop2.mp3
-    const randomIndex = Math.floor(Math.random() * this.dropSounds.length)
-    const selectedSound = this.dropSounds[randomIndex]
-    
-    // Reproducir el sonido
-    selectedSound.play()
-    
-    console.log(`Reproduciendo sonido: drop${randomIndex + 1}.mp3`)
+    // Limpiar audio
+    if (this.audioManager) {
+      this.audioManager.destroy()
+    }
   }
 }
