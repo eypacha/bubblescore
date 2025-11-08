@@ -178,19 +178,16 @@ const initializeGame = () => {
     updateCanvasSize()
     
     physicsEngine.onBubbleFusion = (valueA, valueB, sum, pointsEarned, colorBonus, isPerfectFusion = false, fusionX, fusionY) => {
-      const bonusText = colorBonus ? ' ¡MISMO COLOR!' : ''
-      const perfectText = isPerfectFusion ? ' ¡FUSIÓN PERFECTA 100!' : ''
-      console.log(`¡Fusión exitosa! ${valueA} + ${valueB} = ${sum} (+${pointsEarned} pts)${bonusText}${perfectText}`)
+      const bonusText = colorBonus ? 'COLOR!' : ''
+      const perfectText = isPerfectFusion ? '100!' : ''
       score.value = physicsEngine.scoreManager.getScore()
       
-      // Crear efecto flotante en la posición de la fusión (relativo al canvas)
       const floatingScore = {
         id: nextFloatingId++,
         points: pointsEarned,
         fusion: isPerfectFusion ? `${valueA}+${valueB}=💯` : `${valueA}+${valueB}=${sum}`,
         colorBonus: colorBonus,
         isPerfectFusion: isPerfectFusion,
-        x: fusionX, // Coordenadas directas del canvas
         y: fusionY,
         duration: isPerfectFusion ? 3000 : 2000
       }
@@ -203,15 +200,11 @@ const initializeGame = () => {
     }
     
     physicsEngine.onGameOver = () => {
-      console.log('¡GAME OVER!')
       isGameOver.value = true
       stopBubbleGeneration()
     }
     
     physicsEngine.onBombExploded = (bombX, bombY) => {
-      console.log('💥 Bomba explotó en GameView!')
-      
-      // Crear efecto visual de explosión
       const explosionEffect = {
         id: nextFloatingId++,
         points: 0,
