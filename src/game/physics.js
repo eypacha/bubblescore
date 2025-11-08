@@ -556,20 +556,14 @@ export class GamePhysics {
 
         } else if (body.isClock) {
             this.ctx.globalAlpha = 1
-            this.ctx.strokeStyle = '#00ff00'
-            this.ctx.lineWidth = 4
-            this.ctx.beginPath()
-            this.ctx.arc(0, 0, radius, 0, Math.PI * 2)
-            this.ctx.stroke()
-
-            const emojiSize = radius * 2.4
+            const emojiSize = radius * 3
             this.ctx.font = `${emojiSize}px sans-serif`
             this.ctx.textAlign = 'center'
             this.ctx.textBaseline = 'middle'
             this.ctx.fillStyle = 'black'
             this.ctx.fillText('⏰', 0, 0)
 
-            this.ctx.fillStyle = '#ffffff'
+            this.ctx.fillStyle = body.isSelected ? 'yellow' : '#ffffff'
             this.ctx.strokeStyle = '#000000'
             this.ctx.lineWidth = 2
             const timerFontSize = radius * 1.1

@@ -1,4 +1,5 @@
 import Matter from 'matter-js'
+import { BUBBLE_TIMER } from './constants.js'
 
 export class BubbleFactory {
   constructor(world, canvas, colorManager) {
