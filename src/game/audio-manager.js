@@ -55,8 +55,6 @@ export class AudioManager {
     
     // Reproducir el sonido
     selectedSound.play()
-    
-    console.log(`Reproduciendo sonido: pop${randomIndex + 1}.mp3`)
   }
 
   playDropSound() {
@@ -66,8 +64,6 @@ export class AudioManager {
     
     // Reproducir el sonido
     selectedSound.play()
-    
-    console.log(`Reproduciendo sonido: drop${randomIndex + 1}.mp3`)
   }
 
   destroy() {

@@ -25,8 +25,6 @@ export class GamePhysics {
     this.startEngine()
     
     this.updateDangerLine()
-    
-    console.log('Motor de física inicializado con sistema de click')
   }
   
   initializePhysicsEngine() {
@@ -250,12 +248,18 @@ export class GamePhysics {
   }
 
   createFusedBubble(x, y, value, colorA, colorB) {
-    const baseRadius = 30
-    const fusionLevel = value / 10
-    const radius = Math.min(baseRadius + (fusionLevel * 5), 65)
-    
-    const fusedColor = this.colorManager.mixColors(colorA, colorB)
-    
+    const baseRadius = 30;
+    const fusionLevel = value / 10;
+    const radius = Math.min(baseRadius + (fusionLevel * 5), 65);
+
+    const fusedColor = this.colorManager.mixColors(colorA, colorB);
+
+    // Cada vez que se crea una fusión válida, sube el nivel
+    this.level = (this.level || 1) + 1;
+    if (typeof this.onLevelUp === 'function') {
+      this.onLevelUp(this.level);
+    }
+
     const fusedBubble = Matter.Bodies.circle(x, y, radius, {
       restitution: 0.7,
       friction: 0.3,
@@ -271,10 +275,10 @@ export class GamePhysics {
       fusionLevel: fusionLevel,
       value: value,
       color: fusedColor
-    })
-    
-    Matter.World.add(this.world, fusedBubble)
-    return fusedBubble
+    });
+
+    Matter.World.add(this.world, fusedBubble);
+    return fusedBubble;
   }
 
   decrementBombTimers() {

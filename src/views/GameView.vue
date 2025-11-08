@@ -85,16 +85,13 @@ let animationId = null
 let bubbleInterval = null
 let nextFloatingId = 0
 
-const BUBBLE_SPAWN_INTERVAL = 2000 
+let bubbleSpawnInterval = 2600 // Empieza más lento
 
 const createBubble = () => {
   console.log('CreateBubble llamado, physicsEngine existe:', !!physicsEngine, 'bubbleFactory existe:', !!(physicsEngine && physicsEngine.bubbleFactory))
   if (physicsEngine && physicsEngine.bubbleFactory) {
     physicsEngine.bubbleFactory.createBubble()
-    console.log('Burbuja creada exitosamente')
-  } else {
-    console.error('No se pudo crear burbuja - physicsEngine o bubbleFactory no disponible')
-  }
+  } 
 }
 
 const restartGame = () => {
@@ -121,18 +118,29 @@ const restartGame = () => {
 const startBubbleGeneration = () => {
   console.log('StartBubbleGeneration llamado...')
   createBubble()
-  
+
   // Asegurarse de limpiar cualquier intervalo previo
   if (bubbleInterval) {
     clearInterval(bubbleInterval)
   }
-  
+
   bubbleInterval = setInterval(() => {
-    console.log('Creando burbuja automática...')
     createBubble()
-  }, BUBBLE_SPAWN_INTERVAL)
-  
-  console.log('Generación automática de burbujas iniciada con intervalo:', BUBBLE_SPAWN_INTERVAL)
+  }, bubbleSpawnInterval)
+
+  console.log('Generación automática de burbujas iniciada con intervalo:', bubbleSpawnInterval)
+}
+// Incrementa la velocidad de aparición de burbujas con cada nivel
+function onLevelUp(newLevel) {
+  // Reduce el intervalo un 8% por nivel, mínimo 600ms
+  bubbleSpawnInterval = Math.max(600, Math.floor(bubbleSpawnInterval * 0.92));
+  if (bubbleInterval) {
+    clearInterval(bubbleInterval);
+    bubbleInterval = setInterval(() => {
+      createBubble();
+    }, bubbleSpawnInterval);
+    console.log('Nuevo intervalo de burbujas:', bubbleSpawnInterval);
+  }
 }
 
 const stopBubbleGeneration = () => {
@@ -174,9 +182,10 @@ const initializeGame = () => {
   
   if (gameCanvas.value) {
     physicsEngine = new GamePhysics(gameCanvas.value)
-    
+    physicsEngine.onLevelUp = onLevelUp;
+
     updateCanvasSize()
-    
+
     physicsEngine.onBubbleFusion = (valueA, valueB, sum, pointsEarned, colorBonus, isPerfectFusion = false, fusionX, fusionY) => {
       const bonusText = colorBonus ? 'COLOR!' : ''
       const perfectText = isPerfectFusion ? '100!' : ''
