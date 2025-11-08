@@ -64,37 +64,24 @@ const createBubble = () => {
 }
 
 const restartGame = () => {
-  // Resetear estados de Vue
   isGameOver.value = false
   score.value = 0
   lastFusion.value = { points: 0, fusion: '', colorBonus: false, timestamp: 0 }
   
-  // Limpiar timeouts
   if (fusionAnimationTimeout) {
     clearTimeout(fusionAnimationTimeout)
     fusionAnimationTimeout = null
   }
   
-  // Detener generación actual de burbujas
   stopBubbleGeneration()
   
-  // Reiniciar el motor de física
   if (physicsEngine) {
-    physicsEngine.isGameOver = false
-    physicsEngine.bubbles = []
-    physicsEngine.clearSelection()
+    physicsEngine.restart()
     if (physicsEngine.scoreManager) {
       physicsEngine.scoreManager.reset()
     }
-    
-    // Limpiar el canvas
-    const ctx = physicsEngine.ctx
-    if (ctx) {
-      ctx.clearRect(0, 0, canvasWidth.value, canvasHeight.value)
-    }
   }
   
-  // Reiniciar generación de burbujas después de un pequeño delay
   setTimeout(() => {
     startBubbleGeneration()
   }, 300)

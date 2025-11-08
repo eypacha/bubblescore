@@ -117,7 +117,27 @@ export class GamePhysics {
       this.onGameOver()
     }
   }
-  
+
+  restart() {
+    this.isGameOver = false
+    this.clearSelection()
+    
+    // Eliminar todas las burbujas del mundo
+    const bodies = Matter.Composite.allBodies(this.world)
+    const bubbles = bodies.filter(body => body.isBubble)
+    if (bubbles.length > 0) {
+      Matter.World.remove(this.world, bubbles)
+    }
+    
+    // Reiniciar el runner si está detenido
+    if (this.runner && !this.runner.enabled) {
+      Matter.Runner.start(this.runner, this.engine)
+    }
+    
+    // Limpiar canvas
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+  }
+
   setupClickEvents() {
     this.canvas.addEventListener('click', this.onBubbleClick.bind(this))
   }
@@ -301,11 +321,10 @@ export class GamePhysics {
     this.ctx.fillStyle = color.fill
     this.ctx.fill()
     
+    this.ctx.strokeStyle = color.stroke
     if (isSelected) {
-      this.ctx.strokeStyle = '#FFD700'
-      this.ctx.lineWidth = 4
+      this.ctx.lineWidth = 6
     } else {
-      this.ctx.strokeStyle = color.stroke
       this.ctx.lineWidth = 2
     }
     this.ctx.stroke()
