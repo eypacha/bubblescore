@@ -12,8 +12,7 @@ export class BubbleFactory {
     
     // Sistema de bombas
     this.bombCounter = 0
-  this.bombSpawnRate = 18 // Una bomba cada 18 burbujas aproximadamente
-    this.bombInCanvas = false // Solo una bomba a la vez
+    this.bombSpawnRate = 25
   }
 
   fillBag() {
@@ -72,16 +71,15 @@ export class BubbleFactory {
   }
 
   createBomb(x, y, radius) {
-    this.bombCounter = 0 // Reset counter
-    this.bombInCanvas = true
+    this.bombCounter = 0 \
     
-    const bomb = Matter.Bodies.circle(x, y, radius + 5, { // Ligeramente más grande
+    const bomb = Matter.Bodies.circle(x, y, radius + 5, { 
       restitution: 0.6,
       friction: 0.3,
       frictionAir: 0.01,
       render: {
-        fillStyle: '#1a1a1a', // Negro oscuro
-        strokeStyle: '#ff4444', // Borde rojo
+        fillStyle: '#1a1a1a',
+        strokeStyle: '#ff4444',
         lineWidth: 3
       },
       isBubble: true,
@@ -95,9 +93,6 @@ export class BubbleFactory {
     return bomb
   }
 
-  onBombRemoved() {
-    this.bombInCanvas = false
-  }
 
   reset() {
     // Reiniciar la bolsa de valores para un nuevo juego
@@ -106,6 +101,5 @@ export class BubbleFactory {
     
     // Reiniciar sistema de bombas
     this.bombCounter = 0
-    this.bombInCanvas = false
   }
 }

@@ -359,10 +359,6 @@ export class GamePhysics {
 
   finishExplosion(bomb) {
     Matter.World.remove(this.world, bomb)
-    
-    if (this.bubbleFactory) {
-      this.bubbleFactory.onBombRemoved()
-    }
   }
 
   getMousePosition(event) {
