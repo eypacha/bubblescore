@@ -10,8 +10,8 @@
           </div>
         </div>
         <div class="text-right">
-          <div class="text-xs text-gray-500 uppercase tracking-wide">Level</div>
-          <div class="text-lg font-semibold text-gray-700">{{ Math.floor(score / 1000) + 1 }}</div>
+          <div class="text-xs text-gray-500 font-medium uppercase tracking-wide">Level</div>
+          <div class="text-3xl font-semibold text-gray-700">{{ Math.floor(score / 1000) + 1 }}</div>
         </div>
       </div>
     </div>
