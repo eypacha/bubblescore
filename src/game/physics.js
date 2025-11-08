@@ -628,7 +628,7 @@ export class GamePhysics {
             let emojiSize = radius * 2.8;
             if (body.lastPulseTime) {
                 const now = Date.now();
-                const pulseDuration = 250; // ms
+                const pulseDuration = 40; // ms (más rápido)
                 const elapsed = now - body.lastPulseTime;
                 if (elapsed < pulseDuration) {
                     // Interpolación entre 2.8 y 3.1 según el tiempo
