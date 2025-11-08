@@ -119,23 +119,29 @@ export class GamePhysics {
   }
 
   restart() {
-    this.isGameOver = false
-    this.clearSelection()
+    console.log('Reiniciando Physics Engine...')
     
-    // Eliminar todas las burbujas del mundo
+    // Resetear estado del juego primero
+    this.isGameOver = false
+    this.selectedBubble = null
+    
+    // Limpiar todas las burbujas
     const bodies = Matter.Composite.allBodies(this.world)
     const bubbles = bodies.filter(body => body.isBubble)
-    if (bubbles.length > 0) {
-      Matter.World.remove(this.world, bubbles)
-    }
+    Matter.Composite.remove(this.world, bubbles)
     
-    // Reiniciar el runner si está detenido
-    if (this.runner && !this.runner.enabled) {
-      Matter.Runner.start(this.runner, this.engine)
-    }
+    // Detener el runner actual y crear uno nuevo para asegurar un estado limpio
+    Matter.Runner.stop(this.runner)
+    this.runner = Matter.Runner.create()
+    Matter.Runner.run(this.runner, this.engine)
     
     // Limpiar canvas
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+    
+    // Reiniciar el loop de animación si es necesario
+    this.animate()
+    
+    console.log('Physics Engine reiniciado correctamente')
   }
 
   setupClickEvents() {
