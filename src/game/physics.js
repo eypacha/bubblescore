@@ -73,12 +73,10 @@ export class GamePhysics {
   }
 
   setupCollisionEvents() {
-    // Configurar eventos de colisión para sonidos de drop
     Matter.Events.on(this.engine, 'collisionStart', (event) => {
       event.pairs.forEach(pair => {
         const { bodyA, bodyB } = pair
         
-        // Verificar si hay una burbuja que no ha colisionado antes
         if (bodyA.isBubble && !bodyA.hasCollided) {
           bodyA.hasCollided = true
           this.audioManager.playDropSound()
@@ -140,31 +138,25 @@ export class GamePhysics {
   restart() {
     console.log('Reiniciando Physics Engine...')
     
-    // Resetear estado del juego primero
     this.isGameOver = false
     this.selectedBubble = null
     this.selectedBubbles = []
     this.lastClickPosition = null
     
-    // Limpiar todas las burbujas
     const bodies = Matter.Composite.allBodies(this.world)
     const bubbles = bodies.filter(body => body.isBubble)
     Matter.Composite.remove(this.world, bubbles)
-    
-    // Reiniciar el bubble factory
+
     if (this.bubbleFactory) {
       this.bubbleFactory.reset()
     }
     
-    // Detener el runner actual y crear uno nuevo para asegurar un estado limpio
     Matter.Runner.stop(this.runner)
     this.runner = Matter.Runner.create()
     Matter.Runner.run(this.runner, this.engine)
     
-    // Reconfigurar eventos de colisión después de reiniciar el runner
     this.setupCollisionEvents()
     
-    // Limpiar canvas
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
     
     console.log('Physics Engine reiniciado correctamente')
@@ -221,7 +213,6 @@ export class GamePhysics {
   attemptFusion() {
     const [bubbleA, bubbleB] = this.selectedBubbles
     
-    // Verificar si alguna de las burbujas es una bomba
     if (bubbleA.isBomb || bubbleB.isBomb) {
       this.clearSelection()
       return
@@ -232,24 +223,18 @@ export class GamePhysics {
     if (sum % 10 === 0 && sum >= 10 && sum <= 100) {
       this.audioManager.playFusionSound()
       
-      // Calcular posición de la fusión para efectos visuales
       const fusionX = this.lastClickPosition ? this.lastClickPosition.x : (bubbleA.position.x + bubbleB.position.x) / 2
       const fusionY = this.lastClickPosition ? this.lastClickPosition.y : (bubbleA.position.y + bubbleB.position.y) / 2
       
       const scoreResult = this.scoreManager.addScore(bubbleA.value, bubbleB.value, sum, bubbleA, bubbleB)
       
-      // Caso especial: fusión que resulta en 100
       if (sum === 100) {
-        // La burbuja de valor 100 desaparece automáticamente y otorga puntos extra
         console.log('¡FUSIÓN PERFECTA! Burbuja de 100 desaparece automáticamente')
         
-        // Remover las burbujas originales sin crear una nueva
         Matter.World.remove(this.world, [bubbleA, bubbleB])
         
-        // Llamar callback con información de fusión especial y coordenadas
         this.onBubbleFusion?.(bubbleA.value, bubbleB.value, sum, scoreResult.totalPoints, scoreResult.colorBonus, true, fusionX, fusionY)
       } else {
-        // Fusión normal: crear burbuja fusionada
         this.createFusedBubble(fusionX, fusionY, sum, bubbleA.color, bubbleB.color)
         Matter.World.remove(this.world, [bubbleA, bubbleB])
         
@@ -258,7 +243,6 @@ export class GamePhysics {
       
       this.clearSelection()
     } else {
-      // Fusión inválida - decrementar timers de bombas
       console.log('🚫 Fusión inválida:', bubbleA.value, '+', bubbleB.value, '=', sum)
       this.decrementBombTimers()
       this.clearSelection()
@@ -299,7 +283,6 @@ export class GamePhysics {
     
     bombs.forEach(bomb => {
       bomb.bombTimer--
-      // Sonido ticking cada vez que decrementa el timer
       if (this.audioManager && this.audioManager.playTickingSound) {
         this.audioManager.playTickingSound();
       }
@@ -310,28 +293,22 @@ export class GamePhysics {
   }
 
   explodeBomb(bomb) {
-    // Sonido de explosión
     if (this.audioManager && this.audioManager.playBombSound) {
       this.audioManager.playBombSound()
     }
-    // Crear animación de explosión física
     this.createExplosionEffect(bomb)
   }
 
   createExplosionEffect(bomb) {
-    // Configurar la bomba para explosión
     bomb.isExploding = true
     bomb.originalRadius = bomb.circleRadius
     bomb.explosionStartTime = Date.now()
-    bomb.explosionDuration = 60 // ¡Aún más rápido! Menos de la mitad
-    bomb.maxExplosionRadius = bomb.originalRadius * 6 // Aumentado de 5x a 6x para compensar la velocidad
-    
-    // Cambiar color a naranja/amarillo para efecto visual
+    bomb.explosionDuration = 60 
+    bomb.maxExplosionRadius = bomb.originalRadius * 6 
     bomb.render.fillStyle = '#ff6600'
     bomb.render.strokeStyle = '#ff0000'
     bomb.render.lineWidth = 5
     
-    // Iniciar loop de explosión
     this.updateExplosion(bomb)
   }
 
@@ -342,22 +319,18 @@ export class GamePhysics {
     const elapsed = currentTime - bomb.explosionStartTime
     const progress = Math.min(elapsed / bomb.explosionDuration, 1)
     
-    // Función de aceleración ultra agresiva para explosión instantánea
-    const explosiveProgress = Math.pow(progress, 0.2) // Aún más rápido al inicio
+    const explosiveProgress = Math.pow(progress, 0.2)
     const targetRadius = bomb.originalRadius + (bomb.maxExplosionRadius - bomb.originalRadius) * explosiveProgress
     const currentRadius = bomb.circleRadius
     
-    // Escalar más agresivamente
-    if (Math.abs(targetRadius - currentRadius) > 0.3) { // Reducido de 0.5 a 0.3 para más responsividad
+    if (Math.abs(targetRadius - currentRadius) > 0.3) {
       const scaleFactor = targetRadius / currentRadius
       Matter.Body.scale(bomb, scaleFactor, scaleFactor)
     }
     
-    // Aplicar fuerza de empuje a burbujas cercanas con máxima intensidad
     this.applyExplosionForce(bomb, targetRadius, progress)
     
     if (progress >= 1) {
-      // Explosión completa - remover bomba
       this.finishExplosion(bomb)
     }
   }
@@ -371,34 +344,25 @@ export class GamePhysics {
       const dy = bubble.position.y - bomb.position.y
       const distance = Math.sqrt(dx * dx + dy * dy)
       
-      // Solo afectar burbujas dentro del radio de explosión
       if (distance < explosionRadius && distance > 0) {
-        // Calcular fuerza basada en la distancia y el progreso de la explosión
         const forceIntensity = (explosionRadius - distance) / explosionRadius
-        // Máxima fuerza al inicio, casi instantánea
         const progressMultiplier = Math.max(0.3, 1 - progress * 0.5)
-        const baseForce = 0.05 * forceIntensity * progressMultiplier // Duplicado de 0.025 a 0.05 - ¡explosión brutal!
+        const baseForce = 0.05 * forceIntensity * progressMultiplier 
         
-        // Normalizar dirección
         const forceX = (dx / distance) * baseForce
         const forceY = (dy / distance) * baseForce
         
-        // Aplicar fuerza
         Matter.Body.applyForce(bubble, bubble.position, { x: forceX, y: forceY })
       }
     })
   }
 
   finishExplosion(bomb) {
-    // Remover la bomba del mundo
     Matter.World.remove(this.world, bomb)
     
-    // Notificar al bubble factory que la bomba fue removida
     if (this.bubbleFactory) {
       this.bubbleFactory.onBombRemoved()
     }
-    
-    // No llamamos onBombExploded para evitar el mensaje flotante
   }
 
   getMousePosition(event) {
@@ -455,20 +419,19 @@ export class GamePhysics {
     this.drawDynamicDangerLine()
 
     const bodies = Matter.Composite.allBodies(this.world)
-    // Dibujar primero todas las burbujas normales
+    
     bodies.forEach(body => {
       if (body.isBubble && !body.isBomb) {
         this.drawBubble(body)
       }
     })
-    // Luego dibujar todas las bombas por encima
+    
     bodies.forEach(body => {
       if (body.isBubble && body.isBomb) {
         this.drawBubble(body)
       }
     })
 
-    // Actualizar explosiones en progreso
     this.updateAllExplosions()
   }
 
@@ -500,11 +463,8 @@ export class GamePhysics {
     this.ctx.rotate(body.angle)
     
     if (isBomb && !isExploding) {
-      // Renderizar bomba como emoji gigante sin círculo de fondo
       this.ctx.globalAlpha = 1
 
-
-      // Solo dibujar borde de selección si está seleccionada
       if (isSelected) {
         this.ctx.strokeStyle = '#ffff00'
         this.ctx.lineWidth = 6
@@ -513,36 +473,32 @@ export class GamePhysics {
         this.ctx.stroke()
       }
 
-  // Emoji de bomba grande que ocupe casi todo el radio
-  const emojiSize = radius * 2.4 // Aún más grande, cubre casi todo el área de colisión
+  const emojiSize = radius * 2.4 
   this.ctx.font = `${emojiSize}px sans-serif`
   this.ctx.textAlign = 'center'
   this.ctx.textBaseline = 'middle'
   this.ctx.fillStyle = 'black'
   this.ctx.fillText('💣', 0, 0)
 
-      // Timer pequeño en la parte inferior
       this.ctx.fillStyle = '#ffffff'
       this.ctx.strokeStyle = '#000000'
       this.ctx.lineWidth = 2
-      const timerFontSize = radius * 1 // Mucho más grande para que el número sea muy visible
+      const timerFontSize = radius * 1 
       this.ctx.font = `bold ${timerFontSize}px sans-serif`
-      const timerY = 0 // Más arriba, centrado sobre el emoji
+      const timerY = 0 
       this.ctx.strokeText(body.bombTimer.toString(), 0, timerY)
       this.ctx.fillText(body.bombTimer.toString(), 0, timerY)
       
     } else if (isExploding) {
-      // Efecto especial durante explosión - círculo de fuego
       const gradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, radius)
-      gradient.addColorStop(0, '#ffff00') // Centro amarillo brillante
-      gradient.addColorStop(0.5, '#ff6600') // Naranja medio
-      gradient.addColorStop(1, '#ff0000') // Borde rojo
+      gradient.addColorStop(0, '#ffff00') 
+      gradient.addColorStop(0.5, '#ff6600') 
+      gradient.addColorStop(1, '#ff0000')
       
       this.ctx.fillStyle = gradient
       this.ctx.strokeStyle = '#ffffff'
       this.ctx.lineWidth = 8
       
-      // Efecto de pulso
       const pulseIntensity = Math.sin(Date.now() * 0.02) * 0.2 + 1
       this.ctx.globalAlpha = 0.8 + pulseIntensity * 0.2
       
@@ -551,7 +507,6 @@ export class GamePhysics {
       this.ctx.fill()
       this.ctx.stroke()
       
-      // Mostrar texto de explosión
       this.ctx.fillStyle = '#ffffff'
       this.ctx.font = 'bold 20px sans-serif'
       this.ctx.textAlign = 'center'
@@ -563,7 +518,6 @@ export class GamePhysics {
       this.ctx.fillText('BOOM!', 0, 0)
       
     } else {
-      // Burbujas normales
       this.ctx.fillStyle = color.fill
       this.ctx.strokeStyle = color.stroke
       this.ctx.lineWidth = isSelected ? 6 : 2
@@ -574,7 +528,6 @@ export class GamePhysics {
       this.ctx.fill()
       this.ctx.stroke()
       
-      // Renderizar número normal
       this.ctx.fillStyle = 'white'
       const fontSize = Math.min(20 + fusionLevel * 3, 40)
       this.ctx.font = `bold ${fontSize}px sans-serif`
