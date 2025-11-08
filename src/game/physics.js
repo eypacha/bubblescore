@@ -1,4 +1,11 @@
 import Matter from 'matter-js'
+import {
+    LEVEL_UP_SCORE,
+    TIME_IN_DANGER_TO_GAME_OVER,
+    BUBBLE_TIMER,
+    EXPLOSION_DURATION,
+    EXPLOSION_RADIUS
+} from './constants.js'
 import { AudioManager } from './audio-manager.js'
 import { ColorManager } from './color-manager.js'
 import { BubbleFactory } from './bubble-factory.js'
@@ -107,8 +114,7 @@ export class GamePhysics {
                 }
 
                 const timeInDanger = currentTime - bubble.dangerZoneStartTime
-                if (timeInDanger > 1000) {
-                    console.log(`Game Over: Burbuja en zona de peligro por ${timeInDanger}ms`)
+                if (timeInDanger > TIME_IN_DANGER_TO_GAME_OVER) {
                     this.triggerGameOver()
                     return true
                 }
@@ -122,7 +128,6 @@ export class GamePhysics {
 
     triggerGameOver() {
         this.isGameOver = true
-        console.log('¡GAME OVER! El montón de burbujas ha alcanzado el límite de altura')
 
         if (this.runner) {
             Matter.Runner.stop(this.runner)
@@ -134,8 +139,6 @@ export class GamePhysics {
     }
 
     restart() {
-        console.log('Reiniciando Physics Engine...')
-
         this.isGameOver = false
         this.selectedBubble = null
         this.selectedBubbles = []
@@ -156,8 +159,6 @@ export class GamePhysics {
         this.setupCollisionEvents()
 
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
-
-        console.log('Physics Engine reiniciado correctamente')
     }
 
     setupClickEvents() {
@@ -220,20 +221,27 @@ export class GamePhysics {
             return
         }
 
-        // Si ambos son burbujas reloj
         if (bubbleA.isClock && bubbleB.isClock) {
-            // Mostrar contador visual y pausar el juego
-            bubbleA.clockTimer = 5;
-            bubbleB.clockTimer = 5;
+            bubbleA.clockTimer = BUBBLE_TIMER;
+            bubbleB.clockTimer = BUBBLE_TIMER;
             this.isClockPauseActive = true;
+
+            const bodies = Matter.Composite.allBodies(this.world);
+            bodies.forEach(body => {
+                if (body.isBubble && !body.isBomb && !body.isClock) {
+                    body.isFrozen = true;
+                    body.savedVelocity = { x: body.velocity.x, y: body.velocity.y };
+                    Matter.Body.setVelocity(body, { x: 0, y: 0 });
+                }
+            });
+
             if (typeof this.onPauseGame === 'function') {
-                this.onPauseGame(5000)
+                this.onPauseGame(BUBBLE_TIMER)
             }
             if (this.audioManager && this.audioManager.playClockSound) {
                 this.audioManager.playClockSound()
             }
-            // Iniciar cuenta regresiva visual
-            let timer = 5;
+            let timer = BUBBLE_TIMER;
             const countdownInterval = setInterval(() => {
                 timer--;
                 bubbleA.clockTimer = timer;
@@ -242,6 +250,14 @@ export class GamePhysics {
                     clearInterval(countdownInterval);
                     Matter.World.remove(this.world, [bubbleA, bubbleB]);
                     this.isClockPauseActive = false;
+                    // Restaurar movimiento de burbujas
+                    bodies.forEach(body => {
+                        if (body.isBubble && body.isFrozen) {
+                            Matter.Body.setVelocity(body, body.savedVelocity || { x: 0, y: 0 });
+                            body.isFrozen = false;
+                            body.savedVelocity = undefined;
+                        }
+                    });
                     if (typeof this.onBubbleFusion === 'function') {
                         this.onBubbleFusion('⏰', '⏰', 'TIME', 0, false, false, bubbleA.position.x, bubbleA.position.y);
                     }
@@ -259,24 +275,19 @@ export class GamePhysics {
             const fusionX = this.lastClickPosition ? this.lastClickPosition.x : (bubbleA.position.x + bubbleB.position.x) / 2
             const fusionY = this.lastClickPosition ? this.lastClickPosition.y : (bubbleA.position.y + bubbleB.position.y) / 2
 
-            const scoreResult = this.scoreManager.addScore(bubbleA.value, bubbleB.value, sum, bubbleA, bubbleB)
+            const scoreResult = this.scoreManager.addScore(sum, bubbleA, bubbleB)
 
             if (sum === 100) {
-                console.log('¡FUSIÓN PERFECTA! Burbuja de 100 desaparece automáticamente')
-
                 Matter.World.remove(this.world, [bubbleA, bubbleB])
-
                 this.onBubbleFusion?.(bubbleA.value, bubbleB.value, sum, scoreResult.totalPoints, scoreResult.colorBonus, true, fusionX, fusionY)
             } else {
                 this.createFusedBubble(fusionX, fusionY, sum, bubbleA.color, bubbleB.color)
                 Matter.World.remove(this.world, [bubbleA, bubbleB])
-
                 this.onBubbleFusion?.(bubbleA.value, bubbleB.value, sum, scoreResult.totalPoints, scoreResult.colorBonus, false, fusionX, fusionY)
             }
 
             this.clearSelection()
         } else {
-            console.log('🚫 Fusión inválida:', bubbleA.value, '+', bubbleB.value, '=', sum)
             this.decrementBombTimers()
             this.clearSelection()
         }
@@ -289,10 +300,13 @@ export class GamePhysics {
 
         const fusedColor = this.colorManager.mixColors(colorA, colorB);
 
-        // Cada vez que se crea una fusión válida, sube el nivel
-        this.level = (this.level || 1) + 1;
-        if (typeof this.onLevelUp === 'function') {
-            this.onLevelUp(this.level);
+        const currentScore = this.scoreManager.getScore();
+        const newLevel = Math.floor(currentScore / LEVEL_UP_SCORE) + 1;
+        if (newLevel !== this.level) {
+            this.level = newLevel;
+            if (typeof this.onLevelUp === 'function') {
+                this.onLevelUp(this.level);
+            }
         }
 
         const fusedBubble = Matter.Bodies.circle(x, y, radius, {
@@ -332,19 +346,19 @@ export class GamePhysics {
     }
 
     explodeBomb(bomb) {
-            if (this.audioManager && this.audioManager.playBombSound) {
-                this.audioManager.playBombSound()
-            }
-            this.scoreManager.subtractPoints(1000);
-            this.createExplosionEffect(bomb)
+        if (this.audioManager && this.audioManager.playBombSound) {
+            this.audioManager.playBombSound()
+        }
+        this.scoreManager.subtractPoints(1000);
+        this.createExplosionEffect(bomb)
     }
 
     createExplosionEffect(bomb) {
         bomb.isExploding = true
         bomb.originalRadius = bomb.circleRadius
         bomb.explosionStartTime = Date.now()
-        bomb.explosionDuration = 60
-        bomb.maxExplosionRadius = bomb.originalRadius * 6
+        bomb.explosionDuration = EXPLOSION_DURATION
+        bomb.maxExplosionRadius = bomb.originalRadius * EXPLOSION_RADIUS
         bomb.render.fillStyle = '#ff6600'
         bomb.render.strokeStyle = '#ff0000'
         bomb.render.lineWidth = 5
@@ -456,22 +470,18 @@ export class GamePhysics {
 
         const bodies = Matter.Composite.allBodies(this.world)
 
-
-        // Primero dibujar burbujas normales
         bodies.forEach(body => {
             if (body.isBubble && !body.isBomb && !body.isClock) {
                 this.drawBubble(body)
             }
         })
 
-        // Luego dibujar burbujas reloj por encima
         bodies.forEach(body => {
             if (body.isBubble && body.isClock) {
                 this.drawBubble(body)
             }
         })
 
-        // Finalmente dibujar bombas por encima
         bodies.forEach(body => {
             if (body.isBubble && body.isBomb) {
                 this.drawBubble(body)
@@ -491,23 +501,22 @@ export class GamePhysics {
     }
 
     drawDynamicDangerLine() {
-    if (!this.dangerLineY || !this.ctx) return;
-    this.ctx.save();
-    this.ctx.beginPath();
-    this.ctx.moveTo(0, this.dangerLineY);
-    this.ctx.lineTo(this.canvas.width, this.dangerLineY);
-    this.ctx.strokeStyle = 'rgba(255,0,0,0.7)';
-    this.ctx.lineWidth = 4;
-    this.ctx.setLineDash([12, 8]);
-    this.ctx.stroke();
-    this.ctx.setLineDash([]);
-    this.ctx.restore();
+        if (!this.dangerLineY || !this.ctx) return;
+        this.ctx.save();
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, this.dangerLineY);
+        this.ctx.lineTo(this.canvas.width, this.dangerLineY);
+        this.ctx.strokeStyle = 'rgba(255,0,0,0.7)';
+        this.ctx.lineWidth = 4;
+        this.ctx.setLineDash([12, 8]);
+        this.ctx.stroke();
+        this.ctx.setLineDash([]);
+        this.ctx.restore();
     }
 
     drawBubble(body) {
         const pos = body.position
         const radius = body.circleRadius
-        const isFused = body.isFused || false
         const fusionLevel = body.fusionLevel || 0
         const color = body.color || { fill: '#3B82F6', stroke: '#1E40AF' }
         const isSelected = body.isSelected || false
@@ -546,16 +555,13 @@ export class GamePhysics {
             this.ctx.fillText(body.bombTimer.toString(), 0, timerY)
 
         } else if (body.isClock) {
-            // Burbuja reloj: emoji grande y centrado, borde temporal para debug
             this.ctx.globalAlpha = 1
-            // Borde temporal
             this.ctx.strokeStyle = '#00ff00'
             this.ctx.lineWidth = 4
             this.ctx.beginPath()
             this.ctx.arc(0, 0, radius, 0, Math.PI * 2)
             this.ctx.stroke()
 
-            // Emoji grande
             const emojiSize = radius * 2.4
             this.ctx.font = `${emojiSize}px sans-serif`
             this.ctx.textAlign = 'center'
@@ -563,7 +569,6 @@ export class GamePhysics {
             this.ctx.fillStyle = 'black'
             this.ctx.fillText('⏰', 0, 0)
 
-            // Contador visual encima
             this.ctx.fillStyle = '#ffffff'
             this.ctx.strokeStyle = '#000000'
             this.ctx.lineWidth = 2

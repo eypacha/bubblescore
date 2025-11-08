@@ -6,21 +6,13 @@ const routes = [
   {
     path: '/',
     name: 'Home',
-    component: HomeView
-  },
-  {
-    path: '/game',
-    name: 'Game',
     component: GameView
   },
 ]
 
 const router = createRouter({
   history: createWebHistory('/'),
-  routes,
-  scrollBehavior(to, from, savedPosition) {
-    return { top: 0 }
-  }
+  routes
 })
 
 export default router

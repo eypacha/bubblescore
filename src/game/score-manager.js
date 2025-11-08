@@ -1,3 +1,11 @@
+import {
+  MULTIPLIER_BONUS,
+  HIGH_VALUE_FUSION_BONUS,
+  HIGH_VALUE_FUSION_THRESHOLD,
+  PERFECT_FUSION_BONUS,
+  COLOR_BONUS_MULTIPLIER
+} from './constants.js'
+
 export class ScoreManager {
   subtractPoints(points) {
     this.score = Math.max(0, this.score - points);
@@ -7,28 +15,25 @@ export class ScoreManager {
   }
   constructor() {
     this.score = 0
-    this.multiplierBonus = 10
+    this.multiplierBonus = MULTIPLIER_BONUS
     this.onScoreUpdate = null
   }
 
-  addScore(bubbleValueA, bubbleValueB, fusionSum, bubbleA = null, bubbleB = null) {
+  addScore(fusionSum, bubbleA = null, bubbleB = null) {
     const baseScore = fusionSum * this.multiplierBonus
     let bonus = 0
     
-    // Bonus por fusión de alto valor
-    if (fusionSum >= 50) {
-      bonus = Math.floor(fusionSum / 10) * 25
+    if (fusionSum >= HIGH_VALUE_FUSION_THRESHOLD) {
+      bonus = Math.floor(fusionSum / 10) * HIGH_VALUE_FUSION_BONUS
     }
     
-    // Bonus especial por fusión de 100
     if (fusionSum === 100) {
-      bonus += 500
+      bonus += PERFECT_FUSION_BONUS
     }
     
-    // Bonus por mismo color exacto
     let colorBonus = 0
     if (bubbleA && bubbleB && this.isSameColor(bubbleA.color, bubbleB.color)) {
-      colorBonus = fusionSum * 20 // 2x el bonus normal
+      colorBonus = fusionSum * COLOR_BONUS_MULTIPLIER 
       bonus += colorBonus
     }
     

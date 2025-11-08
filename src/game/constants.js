@@ -1,0 +1,10 @@
+export const LEVEL_UP_SCORE = 5000;
+export const TIME_IN_DANGER_TO_GAME_OVER = 1000;
+export const BUBBLE_TIMER = 5000;
+export const EXPLOSION_DURATION = 60;
+export const EXPLOSION_RADIUS = 6;
+export const MULTIPLIER_BONUS = 10;
+export const HIGH_VALUE_FUSION_BONUS = 25;
+export const HIGH_VALUE_FUSION_THRESHOLD = 50;
+export const PERFECT_FUSION_BONUS = 500;
+export const COLOR_BONUS_MULTIPLIER = 20;

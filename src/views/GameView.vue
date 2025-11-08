@@ -11,11 +11,15 @@
         </div>
         <div class="text-right">
           <div class="text-xs text-gray-500 font-medium uppercase tracking-wide">Level</div>
-          <div class="text-3xl font-semibold text-gray-700">{{ Math.floor(score / 1000) + 1 }}</div>
+          <div class="text-3xl font-semibold text-gray-700">{{ Math.floor(score / LEVEL_UP_SCORE) + 1 }}</div>
         </div>
       </div>
     </div>
 
+  <!-- Debug: Mostrar intervalo de aparición de burbujas -->
+  <div class="fixed top-2 right-2 bg-yellow-100 text-yellow-900 px-3 py-1 rounded shadow text-xs z-50">
+    Intervalo de burbujas: {{ bubbleSpawnInterval }} ms
+  </div>
   <!-- Centered game canvas -->
     <div class="transition-all duration-300 ease-in-out w-full md:w-auto relative">
   <!-- Canvas container with relative position -->
@@ -66,6 +70,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { GamePhysics } from '../game/physics.js'
+import { LEVEL_UP_SCORE } from '../game/constants.js'
 import ScorePanel from '../components/ScorePanel.vue'
 import GameOverScreen from '../components/GameOverScreen.vue'
 import GameInstructions from '../components/GameInstructions.vue'
@@ -79,6 +84,7 @@ const canvasHeight = ref(600)
 const score = ref(0)
 const isGameOver = ref(false) // Cambiado a false para que inicie el juego normal
 const floatingScores = ref([])
+const level = ref(1)
 
 let physicsEngine = null
 let animationId = null
@@ -134,6 +140,7 @@ const startBubbleGeneration = () => {
 }
 // Incrementa la velocidad de aparición de burbujas con cada nivel
 function onLevelUp(newLevel) {
+  level.value = newLevel;
   // Reduce el intervalo un 5% por nivel, mínimo 600ms
   bubbleSpawnInterval = Math.max(600, Math.floor(bubbleSpawnInterval * 0.95));
   if (bubbleInterval) {
@@ -188,6 +195,7 @@ const initializeGame = () => {
 
     updateCanvasSize()
 
+    // Elimina la reducción de intervalo de burbujas en la fusión:
     physicsEngine.onBubbleFusion = (valueA, valueB, sum, pointsEarned, colorBonus, isPerfectFusion = false, fusionX, fusionY) => {
       const bonusText = colorBonus ? 'COLOR!' : ''
       const perfectText = isPerfectFusion ? '100!' : ''
@@ -210,16 +218,16 @@ const initializeGame = () => {
       }
       floatingScores.value.push(floatingScore)
     }
-    
+
     physicsEngine.scoreManager.onScoreUpdate = (newScore, pointsAdded) => {
       score.value = physicsEngine.scoreManager.getScore()
     }
-    
+
     physicsEngine.onGameOver = () => {
       isGameOver.value = true
       stopBubbleGeneration()
     }
-    
+
     physicsEngine.onBombExploded = (bombX, bombY) => {
       const explosionEffect = {
         id: nextFloatingId++,
@@ -232,10 +240,18 @@ const initializeGame = () => {
         y: bombY,
         duration: 3000
       }
+      floatingScores.value.push(explosionEffect)
+      // Penalización: restar 200 puntos al explotar bomba
+      score.value = Math.max(0, score.value - 200)
+    }
+
+    // PAUSA DE RELOJES
+    physicsEngine.onPauseGame = (pauseMs) => {
       
-  floatingScores.value.push(explosionEffect)
-  // Penalización: restar 200 puntos al explotar bomba
-  score.value = Math.max(0, score.value - 200)
+      stopBubbleGeneration();
+      setTimeout(() => {
+        startBubbleGeneration();
+      }, pauseMs);
     }
     
     gameLoop()
