@@ -50,7 +50,8 @@ export class BubbleFactory {
   }
 
   createClockBubble(x, y, radius) {
-  const collisionRadius = Math.max(radius * 0.85, 24)
+  // Hacer la burbuja del reloj más pequeña que las normales
+  const collisionRadius = Math.max(radius * 0.6, 22)
     const bubble = Matter.Bodies.circle(x, y, collisionRadius, {
       restitution: 0.6,
       friction: 0.3,

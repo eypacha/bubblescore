@@ -173,7 +173,7 @@ export class GamePhysics {
         const clickedBubble = this.findBodyAtPosition(mousePos.x, mousePos.y)
         if (clickedBubble && clickedBubble.isBubble) {
             if (clickedBubble.isBomb) {
-                this.decrementBombTimers();
+                this.startBombTimer(clickedBubble);
                 this.clearSelection();
             } else if (clickedBubble.isClock) {
                 // Activar la mecánica de pausa directamente
@@ -375,19 +375,19 @@ export class GamePhysics {
         return fusedBubble;
     }
 
-    decrementBombTimers() {
-        const bodies = Matter.Composite.allBodies(this.world)
-        const bombs = bodies.filter(body => body.isBomb)
-
-        bombs.forEach(bomb => {
-            bomb.bombTimer--
+    startBombTimer(bomb) {
+        if (bomb.bombTimerInterval) return; // Prevent multiple intervals
+        bomb.bombTimerInterval = setInterval(() => {
+            bomb.bombTimer--;
             if (this.audioManager && this.audioManager.playTickingSound) {
                 this.audioManager.playTickingSound();
             }
             if (bomb.bombTimer <= 0) {
-                this.explodeBomb(bomb)
+                clearInterval(bomb.bombTimerInterval);
+                bomb.bombTimerInterval = null;
+                this.explodeBomb(bomb);
             }
-        })
+        }, 1000);
     }
 
     explodeBomb(bomb) {
@@ -615,12 +615,15 @@ export class GamePhysics {
 
         } else if (body.isClock) {
             this.ctx.globalAlpha = 1
-            const emojiSize = radius * 3
+            
+            const emojiSize = radius * 2.8
             this.ctx.font = `${emojiSize}px sans-serif`
             this.ctx.textAlign = 'center'
             this.ctx.textBaseline = 'middle'
             this.ctx.fillStyle = 'black'
             this.ctx.fillText('⏰', 0, 0)
+
+
 
             this.ctx.fillStyle = (body.isSelected || this.isClockPauseActive) ? 'yellow' : '#ffffff'
             this.ctx.strokeStyle = '#000000'
