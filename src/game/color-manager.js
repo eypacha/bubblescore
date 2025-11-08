@@ -2,22 +2,19 @@ import mixbox from 'mixbox'
 
 export class ColorManager {
   constructor() {
-    // Colores de pigmentos reales
     this.primaryColors = [
-      { fill: '#FF2702', stroke: '#CC1F02', name: 'red' },     // Cadmium Red
-      { fill: '#FEEC00', stroke: '#CBBC00', name: 'yellow' },  // Cadmium Yellow  
-      { fill: '#002185', stroke: '#001A6B', name: 'blue' }     // Cobalt Blue
+      { fill: '#FF2702', stroke: '#CC1F02', name: 'red' },
+      { fill: '#FEEC00', stroke: '#CBBC00', name: 'yellow' },
+      { fill: '#002185', stroke: '#001A6B', name: 'blue' }
     ]
   }
 
   getRandomColor() {
-    // Seleccionar un color primario aleatorio
     const colorIndex = Math.floor(Math.random() * this.primaryColors.length)
     return this.primaryColors[colorIndex]
   }
 
   mixColors(colorA, colorB) {
-    // Función auxiliar para convertir hex a RGB string
     const hexToRgbString = (hex) => {
       const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
       if (result) {
@@ -29,9 +26,7 @@ export class ColorManager {
       return null
     }
 
-    // Función auxiliar para convertir resultado de Mixbox a hex
     const mixboxResultToHex = (mixboxResult) => {
-      // Si es un string rgb(r,g,b), parsearlo
       if (typeof mixboxResult === 'string' && mixboxResult.startsWith('rgb(')) {
         const match = mixboxResult.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/)
         if (match) {
@@ -42,7 +37,6 @@ export class ColorManager {
         }
       }
       
-      // Si es un array [r, g, b], convertir directamente
       if (Array.isArray(mixboxResult) && mixboxResult.length >= 3) {
         const r = Math.round(mixboxResult[0])
         const g = Math.round(mixboxResult[1]) 
@@ -53,7 +47,6 @@ export class ColorManager {
       return '#000000'
     }
 
-    // Convertir colores hex a RGB strings para Mixbox
     const rgbA = hexToRgbString(colorA.fill)
     const rgbB = hexToRgbString(colorB.fill)
     const strokeA = hexToRgbString(colorA.stroke)
@@ -64,15 +57,12 @@ export class ColorManager {
       return { fill: '#6B7280', stroke: '#4B5563', name: 'gray' }
     }
     
-    // Usar Mixbox para mezcla realista de colores
     const mixedRgbString = mixbox.lerp(rgbA, rgbB, 0.5)
     const mixedStrokeString = mixbox.lerp(strokeA, strokeB, 0.5)
     
-    // Convertir de vuelta a hex
     const mixedFill = mixboxResultToHex(mixedRgbString)
     const mixedStrokeHex = mixboxResultToHex(mixedStrokeString)
     
-    // Crear nombre descriptivo basado en los colores originales
     const mixedName = `${colorA.name}+${colorB.name}`
     
     const result = {
@@ -94,7 +84,6 @@ export class ColorManager {
     return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b)
   }
 
-  // Función auxiliar para aclarar colores
   lightenColor(color, percent) {
     const num = parseInt(color.replace("#", ""), 16)
     const amt = Math.round(2.55 * percent)
@@ -106,7 +95,6 @@ export class ColorManager {
       (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1)
   }
 
-  // Función auxiliar para oscurecer colores
   darkenColor(color, percent) {
     const num = parseInt(color.replace("#", ""), 16)
     const amt = Math.round(2.55 * percent)

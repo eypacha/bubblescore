@@ -1,56 +1,32 @@
 import Matter from 'matter-js'
+import mixbox from 'mixbox'
 import { AudioManager } from './audio-manager.js'
 import { ColorManager } from './color-manager.js'
+import { BubbleFactory } from './bubble-factory.js'
 
-export class PhysicsEngine {
+export class GamePhysics {
   constructor(canvas) {
     this.canvas = canvas
     this.ctx = canvas.getContext('2d')
     
-    // ============================================
-    // CONFIGURACIÓN DEL MOTOR DE FÍSICA
-    // ============================================
     this.initializePhysicsEngine()
-    
-    // ============================================
-    // CONFIGURACIÓN DE AUDIO
-    // ============================================ 
     this.initializeAudio()
-    
-    // ============================================
-    // CONFIGURACIÓN DE COLORES
-    // ============================================
     this.initializeColors()
-    
-    // ============================================
-    // CONFIGURACIÓN DE EVENTOS Y CONTROLES
-    // ============================================
+    this.initializeBubbleFactory()
     this.setupMouseEvents()
     this.setupCollisionDetection()
-    
-    // ============================================
-    // INICIALIZACIÓN DEL MUNDO DEL JUEGO
-    // ============================================
     this.createWalls()
     this.startEngine()
     
     console.log('Motor de física inicializado con sistema de fusión')
   }
   
-  // ============================================
-  // MÉTODOS DE INICIALIZACIÓN
-  // ============================================
-  
   initializePhysicsEngine() {
-    // Crear el motor de Matter.js
     this.engine = Matter.Engine.create()
     this.world = this.engine.world
-    
-    // Configurar la gravedad
     this.engine.world.gravity.y = 0.8
     this.engine.world.gravity.x = 0
     
-    // Crear el renderer personalizado
     this.render = Matter.Render.create({
       canvas: this.canvas,
       engine: this.engine,
@@ -64,7 +40,6 @@ export class PhysicsEngine {
       }
     })
     
-    // Crear mouse constraint para interacción
     this.mouse = Matter.Mouse.create(this.canvas)
     this.mouseConstraint = Matter.MouseConstraint.create(this.engine, {
       mouse: this.mouse,
@@ -76,48 +51,39 @@ export class PhysicsEngine {
       }
     })
     
-    // Agregar el mouse constraint al mundo
     Matter.World.add(this.world, this.mouseConstraint)
-    
-    // Variables para el arrastre
     this.isDragging = false
     this.draggedBody = null
   }
   
   initializeAudio() {
-    // Inicializar el manager de audio
     this.audioManager = new AudioManager()
   }
   
   initializeColors() {
-    // Inicializar el manager de colores
     this.colorManager = new ColorManager()
+  }
+
+  initializeBubbleFactory() {
+    this.bubbleFactory = new BubbleFactory(this.world, this.canvas, this.colorManager)
   }
   
   startEngine() {
-    // Iniciar el motor
     Matter.Render.run(this.render)
     this.runner = Matter.Runner.create()
     Matter.Runner.run(this.runner, this.engine)
   }
   
-  // ============================================
-  // SISTEMA DE COLISIONES Y LÓGICA DE JUEGO
-  // ============================================
-  
   setupCollisionDetection() {
-    // Escuchar eventos de colisión
     Matter.Events.on(this.engine, 'collisionStart', (event) => {
       const pairs = event.pairs
       
       pairs.forEach(pair => {
         const { bodyA, bodyB } = pair
         
-        // Verificar primera colisión para ambas burbujas
         this.checkFirstCollision(bodyA)
         this.checkFirstCollision(bodyB)
         
-        // Solo procesar colisiones entre burbujas para fusión
         if (bodyA.isBubble && bodyB.isBubble) {
           this.handleBubbleCollision(bodyA, bodyB)
         }
@@ -126,7 +92,6 @@ export class PhysicsEngine {
   }
   
   checkFirstCollision(body) {
-    // Solo verificar burbujas que no sean paredes
     if (body.isBubble && !body.hasCollided) {
       body.hasCollided = true
       this.audioManager.playDropSound()
@@ -135,75 +100,54 @@ export class PhysicsEngine {
   }
   
   handleBubbleCollision(bubbleA, bubbleB) {
-    // Verificar si la suma de los valores es múltiplo de 10
     const sum = bubbleA.value + bubbleB.value
     
-    // Fusionar si es múltiplo de 10 y está entre 10 y 100
     if (sum % 10 === 0 && sum >= 10 && sum <= 100) {
       console.log(`¡FUSIÓN! ${bubbleA.value} + ${bubbleB.value} = ${sum}`)
       console.log(`Colores: ${bubbleA.color.name} + ${bubbleB.color.name}`)
       
-      // Reproducir sonido de fusión aleatorio
       this.audioManager.playFusionSound()
       
-      // Calcular la posición de la nueva burbuja (punto medio)
       const newX = (bubbleA.position.x + bubbleB.position.x) / 2
       const newY = (bubbleA.position.y + bubbleB.position.y) / 2
       
-      // Crear la nueva burbuja fusionada con mezcla de colores
       this.createFusedBubble(newX, newY, sum, bubbleA.color, bubbleB.color)
       
-      // Remover las burbujas originales
       Matter.World.remove(this.world, [bubbleA, bubbleB])
-      
-      // Callback para notificar al juego (puntuación, efectos, etc.)
       this.onBubbleFusion?.(bubbleA.value, bubbleB.value, sum)
     }
   }
   
   createFusedBubble(x, y, value, colorA, colorB) {
-    // Tamaño dinámico según el valor de la fusión
-    // Tamaño base 30px, incrementa 5px por cada nivel de fusión
     const baseRadius = 30
-    const fusionLevel = value / 10 // 10=1, 20=2, 30=3, etc.
-    const radius = Math.min(baseRadius + (fusionLevel * 5), 65) // Máximo 65px para 100
+    const fusionLevel = value / 10
+    const radius = Math.min(baseRadius + (fusionLevel * 5), 65)
     
-    // Mezclar colores usando RGB real
     const fusedColor = this.colorManager.mixColors(colorA, colorB)
     
-    // Crear la burbuja fusionada
     const fusedBubble = Matter.Bodies.circle(x, y, radius, {
-      restitution: 0.7, // Más rebote
+      restitution: 0.7,
       friction: 0.3,
       frictionAir: 0.01,
       render: {
         fillStyle: fusedColor.fill,
         strokeStyle: fusedColor.stroke,
-        lineWidth: Math.min(2 + Math.floor(fusionLevel / 2), 6) // Borde más grueso para valores altos
+        lineWidth: Math.min(2 + Math.floor(fusionLevel / 2), 6)
       },
-      // Propiedades personalizadas
       isBubble: true,
-      isFused: true, // Marcar como fusionada
-      hasCollided: true, // Las burbujas fusionadas ya han colisionado
-      fusionLevel: fusionLevel, // Nivel de fusión (1-10)
+      isFused: true,
+      hasCollided: true,
+      fusionLevel: fusionLevel,
       value: value,
       color: fusedColor
     })
     
-    // Agregar la nueva burbuja al mundo
     Matter.World.add(this.world, fusedBubble)
-    
     console.log(`Burbuja fusionada creada: ${colorA.name} + ${colorB.name} = ${fusedColor.name}, valor ${value}, nivel ${fusionLevel}`)
-    
     return fusedBubble
   }
   
-  // ============================================
-  // SISTEMA DE EVENTOS E INTERACCIÓN
-  // ============================================
-  
   setupMouseEvents() {
-    // Prevenir el scroll en móviles cuando se toque el canvas
     this.canvas.addEventListener('touchstart', (e) => {
       e.preventDefault()
     }, { passive: false })
@@ -212,12 +156,10 @@ export class PhysicsEngine {
       e.preventDefault()
     }, { passive: false })
     
-    // Eventos de mouse
     this.canvas.addEventListener('mousedown', this.onMouseDown.bind(this))
     this.canvas.addEventListener('mousemove', this.onMouseMove.bind(this))
     this.canvas.addEventListener('mouseup', this.onMouseUp.bind(this))
     
-    // Eventos de touch para móviles
     this.canvas.addEventListener('touchstart', this.onTouchStart.bind(this))
     this.canvas.addEventListener('touchmove', this.onTouchMove.bind(this))
     this.canvas.addEventListener('touchend', this.onTouchEnd.bind(this))
@@ -250,7 +192,6 @@ export class PhysicsEngine {
     const bodies = Matter.Composite.allBodies(this.world)
     for (let body of bodies) {
       if (body.isBubble && Matter.Bounds.contains(body.bounds, { x, y })) {
-        // Verificar si realmente está dentro del círculo
         const dx = x - body.position.x
         const dy = y - body.position.y
         const distance = Math.sqrt(dx * dx + dy * dy)
@@ -262,7 +203,6 @@ export class PhysicsEngine {
     return null
   }
   
-  // Eventos de mouse
   onMouseDown(event) {
     const mousePos = this.getMousePosition(event)
     const body = this.findBodyAtPosition(mousePos.x, mousePos.y)
@@ -271,10 +211,8 @@ export class PhysicsEngine {
       this.isDragging = true
       this.draggedBody = body
       
-      // Cambiar el cursor
       this.canvas.style.cursor = 'grabbing'
       
-      // Reducir la gravedad del objeto arrastrado
       Matter.Body.setStatic(body, true)
     }
   }
@@ -284,7 +222,6 @@ export class PhysicsEngine {
       const mousePos = this.getMousePosition(event)
       Matter.Body.setPosition(this.draggedBody, { x: mousePos.x, y: mousePos.y })
     } else {
-      // Cambiar cursor cuando esté sobre una burbuja
       const mousePos = this.getMousePosition(event)
       const body = this.findBodyAtPosition(mousePos.x, mousePos.y)
       this.canvas.style.cursor = body ? 'grab' : 'default'
@@ -293,10 +230,8 @@ export class PhysicsEngine {
   
   onMouseUp(event) {
     if (this.isDragging && this.draggedBody) {
-      // Restaurar las propiedades físicas
       Matter.Body.setStatic(this.draggedBody, false)
       
-      // Agregar un pequeño impulso basado en el movimiento del mouse
       const mousePos = this.getMousePosition(event)
       const force = {
         x: (mousePos.x - this.draggedBody.position.x) * 0.001,
@@ -310,7 +245,6 @@ export class PhysicsEngine {
     }
   }
   
-  // Eventos de touch (móvil)
   onTouchStart(event) {
     const touchPos = this.getTouchPosition(event)
     const body = this.findBodyAtPosition(touchPos.x, touchPos.y)
@@ -342,19 +276,15 @@ export class PhysicsEngine {
     const { width, height } = this.canvas
     const wallThickness = 50
     
-    // Crear paredes invisibles
     const walls = [
-      // Suelo
       Matter.Bodies.rectangle(width / 2, height + wallThickness / 2, width, wallThickness, {
         isStatic: true,
         render: { visible: false }
       }),
-      // Pared izquierda
       Matter.Bodies.rectangle(-wallThickness / 2, height / 2, wallThickness, height, {
         isStatic: true,
         render: { visible: false }
       }),
-      // Pared derecha
       Matter.Bodies.rectangle(width + wallThickness / 2, height / 2, wallThickness, height, {
         isStatic: true,
         render: { visible: false }
@@ -364,50 +294,9 @@ export class PhysicsEngine {
     Matter.World.add(this.world, walls)
   }
   
-  createBubble() {
-    const { width } = this.canvas
-    
-    // Posición X aleatoria en la parte superior
-    const x = Math.random() * (width - 100) + 50 // Margen de 50px en cada lado
-    const y = -50 // Comienza arriba del canvas
-    
-    // Tamaño medio del círculo
-    const radius = 30
-    
-    // Seleccionar un color aleatorio
-    const selectedColor = this.colorManager.getRandomColor()
-    
-    // Crear el círculo/burbuja
-    const bubble = Matter.Bodies.circle(x, y, radius, {
-      restitution: 0.6, // Rebote
-      friction: 0.3,
-      frictionAir: 0.01, // Resistencia al aire
-      render: {
-        fillStyle: selectedColor.fill,
-        strokeStyle: selectedColor.stroke,
-        lineWidth: 2
-      },
-      // Propiedades personalizadas del juego
-      isBubble: true,
-      hasCollided: false, // Para rastrear primera colisión
-      value: Math.floor(Math.random() * 9) + 1, // Número del 1 al 9
-      color: selectedColor // Guardar el color para uso posterior
-    })
-    
-    // Agregar la burbuja al mundo
-    Matter.World.add(this.world, bubble)
-    
-    console.log(`Burbuja creada en x: ${x}, valor: ${bubble.value}, color: ${selectedColor.name}`)
-    
-    return bubble
-  }
-  
-  // Renderizado personalizado para mostrar números en las burbujas
   customRender() {
-    // Limpiar el canvas
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
     
-    // Dibujar todos los cuerpos
     const bodies = Matter.Composite.allBodies(this.world)
     
     bodies.forEach(body => {
@@ -429,20 +318,16 @@ export class PhysicsEngine {
     this.ctx.translate(pos.x, pos.y)
     this.ctx.rotate(body.angle)
     
-    // Dibujar el círculo con color plano
     this.ctx.beginPath()
     this.ctx.arc(0, 0, radius, 0, Math.PI * 2)
     
-    // Solo color plano, sin gradientes ni sombras
     this.ctx.fillStyle = color.fill
     this.ctx.fill()
     
-    // Borde simple
     this.ctx.strokeStyle = color.stroke
     this.ctx.lineWidth = 2
     this.ctx.stroke()
     
-    // Dibujar el número
     this.ctx.fillStyle = 'white'
     const fontSize = Math.min(20 + fusionLevel * 3, 40) // Tipografía más grande: base 20px, hasta 40px
     this.ctx.font = `bold ${fontSize}px sans-serif`
@@ -453,7 +338,6 @@ export class PhysicsEngine {
     this.ctx.strokeText(body.value.toString(), 0, 0)
     this.ctx.fillText(body.value.toString(), 0, 0)
     
-    // Agregar rayita para diferenciar 6 y 9
     if (body.value === 6 || body.value === 9) {
       const underlineY = fontSize * 0.5 // Posición debajo del número
       const underlineWidth = fontSize * 0.6 // Ancho de la rayita
@@ -469,23 +353,19 @@ export class PhysicsEngine {
     this.ctx.restore()
   }
   
-  // Actualizar el tamaño del canvas
   resize(width, height) {
     this.canvas.width = width
     this.canvas.height = height
     this.render.options.width = width
     this.render.options.height = height
     
-    // Recrear las paredes con las nuevas dimensiones
     const bodies = Matter.Composite.allBodies(this.world)
     const walls = bodies.filter(body => body.isStatic)
     Matter.World.remove(this.world, walls)
     this.createWalls()
   }
   
-  // Limpiar y destruir el motor
   destroy() {
-    // Remover event listeners
     this.canvas.removeEventListener('mousedown', this.onMouseDown.bind(this))
     this.canvas.removeEventListener('mousemove', this.onMouseMove.bind(this))
     this.canvas.removeEventListener('mouseup', this.onMouseUp.bind(this))
@@ -493,12 +373,10 @@ export class PhysicsEngine {
     this.canvas.removeEventListener('touchmove', this.onTouchMove.bind(this))
     this.canvas.removeEventListener('touchend', this.onTouchEnd.bind(this))
     
-    // Limpiar Matter.js
     Matter.Render.stop(this.render)
     Matter.Runner.stop(this.runner)
     Matter.Engine.clear(this.engine)
     
-    // Limpiar audio
     if (this.audioManager) {
       this.audioManager.destroy()
     }

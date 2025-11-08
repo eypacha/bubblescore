@@ -28,32 +28,27 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { PhysicsEngine } from '../game/physics.js'
+import { GamePhysics } from '../game/physics.js'
 
-// Referencias del canvas y dimensiones
 const gameCanvas = ref(null)
 const canvasWidth = ref(800)
 const canvasHeight = ref(600)
 
-// Motor de física
 let physicsEngine = null
 let animationId = null
 let bubbleInterval = null
 
-// Configuración del juego
-const BUBBLE_SPAWN_INTERVAL = 2000 // 2 segundos entre burbujas
+const BUBBLE_SPAWN_INTERVAL = 2000 
 
 const createBubble = () => {
-  if (physicsEngine) {
-    physicsEngine.createBubble()
+  if (physicsEngine && physicsEngine.bubbleFactory) {
+    physicsEngine.bubbleFactory.createBubble()
   }
 }
 
 const startBubbleGeneration = () => {
-  // Crear una burbuja inicial inmediatamente
   createBubble()
   
-  // Configurar el intervalo para crear burbujas automáticamente
   bubbleInterval = setInterval(() => {
     createBubble()
   }, BUBBLE_SPAWN_INTERVAL)
@@ -77,7 +72,6 @@ const gameLoop = () => {
 }
 
 const initializeGame = () => {
-  // Configurar dimensiones responsivas del canvas
   const updateCanvasSize = () => {
     const maxWidth = Math.min(window.innerWidth - 40, 900)
     const maxHeight = Math.min(window.innerHeight - 40, 600)
@@ -85,7 +79,6 @@ const initializeGame = () => {
     canvasWidth.value = maxWidth
     canvasHeight.value = maxHeight
     
-    // Actualizar el motor de física si existe
     if (physicsEngine) {
       physicsEngine.resize(maxWidth, maxHeight)
     }
@@ -94,20 +87,15 @@ const initializeGame = () => {
   updateCanvasSize()
   window.addEventListener('resize', updateCanvasSize)
   
-  // Inicializar el motor de física
   if (gameCanvas.value) {
-    physicsEngine = new PhysicsEngine(gameCanvas.value)
+    physicsEngine = new GamePhysics(gameCanvas.value)
     
-    // Configurar el callback para las fusiones
     physicsEngine.onBubbleFusion = (valueA, valueB, sum) => {
       console.log(`¡Fusión exitosa! ${valueA} + ${valueB} = ${sum}`)
-      // Aquí podemos agregar puntuación, efectos de sonido, etc.
     }
     
-    // Iniciar el loop de renderizado personalizado
     gameLoop()
     
-    // Iniciar la generación automática de burbujas después de un breve delay
     setTimeout(() => {
       startBubbleGeneration()
     }, 500)
@@ -125,7 +113,6 @@ const initializeGame = () => {
   }
 }
 
-// Lifecycle hooks
 onMounted(() => {
   const cleanup = initializeGame()
   
