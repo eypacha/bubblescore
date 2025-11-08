@@ -224,6 +224,8 @@ export class GamePhysics {
         const countdownInterval = setInterval(() => {
             timer--;
             clockBubble.clockTimer = timer;
+            // Pulso: marcar el tiempo del último tick
+            clockBubble.lastPulseTime = Date.now();
             if (timer <= 0) {
                 clearInterval(countdownInterval);
                 Matter.World.remove(this.world, [clockBubble]);
@@ -615,15 +617,23 @@ export class GamePhysics {
 
         } else if (body.isClock) {
             this.ctx.globalAlpha = 1
-            
-            const emojiSize = radius * 2.8
+            // Pulso del emoji del reloj
+            let emojiSize = radius * 2.8;
+            if (body.lastPulseTime) {
+                const now = Date.now();
+                const pulseDuration = 250; // ms
+                const elapsed = now - body.lastPulseTime;
+                if (elapsed < pulseDuration) {
+                    // Interpolación entre 2.8 y 3.1 según el tiempo
+                    const t = elapsed / pulseDuration;
+                    emojiSize = radius * (3.1 - (3.1 - 2.8) * t);
+                }
+            }
             this.ctx.font = `${emojiSize}px sans-serif`
             this.ctx.textAlign = 'center'
             this.ctx.textBaseline = 'middle'
             this.ctx.fillStyle = 'black'
             this.ctx.fillText('⏰', 0, 0)
-
-
 
             this.ctx.fillStyle = (body.isSelected || this.isClockPauseActive) ? 'yellow' : '#ffffff'
             this.ctx.strokeStyle = '#000000'
