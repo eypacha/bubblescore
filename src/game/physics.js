@@ -1,4 +1,5 @@
 import Matter from 'matter-js'
+import mixbox from 'mixbox'
 
 export class PhysicsEngine {
   constructor(canvas) {
@@ -85,7 +86,8 @@ export class PhysicsEngine {
     
     // Fusionar si es múltiplo de 10 y está entre 10 y 100
     if (sum % 10 === 0 && sum >= 10 && sum <= 100) {
-      console.log(`¡Fusión! ${bubbleA.value} + ${bubbleB.value} = ${sum}`)
+      console.log(`¡FUSIÓN! ${bubbleA.value} + ${bubbleB.value} = ${sum}`)
+      console.log(`Colores: ${bubbleA.color.name} + ${bubbleB.color.name}`)
       
       // Calcular la posición de la nueva burbuja (punto medio)
       const newX = (bubbleA.position.x + bubbleB.position.x) / 2
@@ -109,8 +111,8 @@ export class PhysicsEngine {
     const fusionLevel = value / 10 // 10=1, 20=2, 30=3, etc.
     const radius = Math.min(baseRadius + (fusionLevel * 5), 65) // Máximo 65px para 100
     
-    // Mezclar colores según las combinaciones
-    const fusedColor = this.mixColors(colorA.name, colorB.name)
+    // Mezclar colores usando RGB real
+    const fusedColor = this.mixColors(colorA, colorB)
     
     // Crear la burbuja fusionada
     const fusedBubble = Matter.Bodies.circle(x, y, radius, {
@@ -138,34 +140,82 @@ export class PhysicsEngine {
     return fusedBubble
   }
   
-  mixColors(colorNameA, colorNameB) {
-    // Definir todas las combinaciones posibles de colores primarios
-    const colorMixes = {
-      // Mismo color (sin mezcla)
-      'red-red': { fill: '#EF4444', stroke: '#DC2626', name: 'red' },
-      'yellow-yellow': { fill: '#F59E0B', stroke: '#D97706', name: 'yellow' },
-      'blue-blue': { fill: '#3B82F6', stroke: '#1E40AF', name: 'blue' },
-      
-      // Mezclas de colores primarios (colores secundarios)
-      'red-yellow': { fill: '#F97316', stroke: '#EA580C', name: 'orange' },    // Rojo + Amarillo = Naranja
-      'yellow-red': { fill: '#F97316', stroke: '#EA580C', name: 'orange' },    // Amarillo + Rojo = Naranja
-      
-      'red-blue': { fill: '#8B5CF6', stroke: '#7C3AED', name: 'purple' },      // Rojo + Azul = Púrpura
-      'blue-red': { fill: '#8B5CF6', stroke: '#7C3AED', name: 'purple' },      // Azul + Rojo = Púrpura
-      
-      'yellow-blue': { fill: '#10B981', stroke: '#059669', name: 'green' },    // Amarillo + Azul = Verde
-      'blue-yellow': { fill: '#10B981', stroke: '#059669', name: 'green' }     // Azul + Amarillo = Verde
+  mixColors(colorA, colorB) {
+    // Función auxiliar para convertir hex a RGB string
+    const hexToRgbString = (hex) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+      if (result) {
+        const r = parseInt(result[1], 16)
+        const g = parseInt(result[2], 16)
+        const b = parseInt(result[3], 16)
+        return `rgb(${r}, ${g}, ${b})`
+      }
+      return null
     }
     
-    // Crear la clave de búsqueda
-    const mixKey = `${colorNameA}-${colorNameB}`
+    // Función auxiliar para convertir resultado de Mixbox a hex
+    const mixboxResultToHex = (mixboxResult) => {
+      // Si es un string rgb(r,g,b), parsearlo
+      if (typeof mixboxResult === 'string' && mixboxResult.startsWith('rgb(')) {
+        const match = mixboxResult.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/)
+        if (match) {
+          const r = parseInt(match[1])
+          const g = parseInt(match[2])
+          const b = parseInt(match[3])
+          const componentToHex = (c) => {
+            const hex = Math.round(c).toString(16)
+            return hex.length == 1 ? "0" + hex : hex
+          }
+          return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b)
+        }
+      }
+      
+      // Si es un array [r, g, b], convertir directamente
+      if (Array.isArray(mixboxResult) && mixboxResult.length >= 3) {
+        const r = Math.round(mixboxResult[0])
+        const g = Math.round(mixboxResult[1]) 
+        const b = Math.round(mixboxResult[2])
+        const componentToHex = (c) => {
+          const hex = Math.round(c).toString(16)
+          return hex.length == 1 ? "0" + hex : hex
+        }
+        return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b)
+      }
+      
+      return '#000000'
+    }
     
-    // Buscar la combinación o devolver un color por defecto
-    const mixedColor = colorMixes[mixKey] || { fill: '#6B7280', stroke: '#4B5563', name: 'gray' }
+    // Convertir colores hex a RGB strings para Mixbox
+    const rgbA = hexToRgbString(colorA.fill)
+    const rgbB = hexToRgbString(colorB.fill)
+    const strokeA = hexToRgbString(colorA.stroke)
+    const strokeB = hexToRgbString(colorB.stroke)
     
-    console.log(`Mezcla de colores: ${colorNameA} + ${colorNameB} = ${mixedColor.name}`)
+    if (!rgbA || !rgbB || !strokeA || !strokeB) {
+      console.error('Error convirtiendo colores:', colorA, colorB)
+      return { fill: '#6B7280', stroke: '#4B5563', name: 'gray' }
+    }
     
-    return mixedColor
+    // Usar Mixbox para mezcla realista de colores
+    const mixedRgbString = mixbox.lerp(rgbA, rgbB, 0.5)
+    const mixedStrokeString = mixbox.lerp(strokeA, strokeB, 0.5)
+    
+    // Convertir de vuelta a hex
+    const mixedFill = mixboxResultToHex(mixedRgbString)
+    const mixedStrokeHex = mixboxResultToHex(mixedStrokeString)
+    
+    // Crear nombre descriptivo basado en los colores originales
+    const mixedName = `${colorA.name}+${colorB.name}`
+    
+    const result = {
+      fill: mixedFill,
+      stroke: mixedStrokeHex,
+      name: mixedName
+    }
+    
+    console.log(`Mezcla Mixbox: ${colorA.name}(${colorA.fill}) + ${colorB.name}(${colorB.fill}) = ${mixedName}(${mixedFill})`)
+    
+    return result
   }
   
   setupMouseEvents() {
@@ -340,11 +390,11 @@ export class PhysicsEngine {
     // Tamaño medio del círculo
     const radius = 30
     
-    // Solo 3 colores primarios
+    // Colores de pigmentos reales
     const colors = [
-      { fill: '#EF4444', stroke: '#DC2626', name: 'red' },     // Rojo
-      { fill: '#F59E0B', stroke: '#D97706', name: 'yellow' },  // Amarillo
-      { fill: '#3B82F6', stroke: '#1E40AF', name: 'blue' }     // Azul
+      { fill: '#FF2702', stroke: '#CC1F02', name: 'red' }, 
+      { fill: '#FEEC00', stroke: '#CBBC00', name: 'yellow' },
+      { fill: '#002185', stroke: '#001A6B', name: 'blue' }
     ]
     
     // Seleccionar un color aleatorio
@@ -411,86 +461,42 @@ export class PhysicsEngine {
       this.ctx.scale(pulseScale, pulseScale)
     }
     
-    // Dibujar el círculo con gradiente y efectos
+    // Dibujar el círculo con color plano
     this.ctx.beginPath()
     this.ctx.arc(0, 0, radius, 0, Math.PI * 2)
     
-    if (isBeingDragged) {
-      // Crear gradiente para efecto de arrastre
-      const gradient = this.ctx.createRadialGradient(-5, -5, 0, 0, 0, radius)
-      gradient.addColorStop(0, this.lightenColor(color.fill, 30))
-      gradient.addColorStop(1, color.fill)
-      this.ctx.fillStyle = gradient
-      
-      // Sombra para efecto de elevación
-      this.ctx.shadowColor = color.stroke
-      this.ctx.shadowBlur = 15
-      this.ctx.shadowOffsetX = 2
-      this.ctx.shadowOffsetY = 2
-    } else if (isFused) {
-      // Gradientes especiales según el nivel de fusión
-      const gradient = this.ctx.createRadialGradient(-8, -8, 0, 0, 0, radius)
-      
-      // Intensidad del brillo según el nivel
-      const lightness = Math.min(20 + (fusionLevel * 10), 80)
-      
-      gradient.addColorStop(0, this.lightenColor(color.fill, lightness))
-      gradient.addColorStop(0.4, this.lightenColor(color.fill, lightness / 2))
-      gradient.addColorStop(0.8, color.fill)
-      gradient.addColorStop(1, this.darkenColor(color.fill, 20))
-      
-      // Sombra más intensa para niveles altos
-      const shadowIntensity = Math.min(5 + fusionLevel * 2, 20)
-      this.ctx.shadowColor = color.stroke
-      this.ctx.shadowBlur = shadowIntensity
-      this.ctx.shadowOffsetX = Math.min(2 + fusionLevel, 5)
-      this.ctx.shadowOffsetY = Math.min(2 + fusionLevel, 5)
-      
-      this.ctx.fillStyle = gradient
-    } else {
-      // Gradiente normal
-      const gradient = this.ctx.createRadialGradient(-8, -8, 0, 0, 0, radius)
-      gradient.addColorStop(0, this.lightenColor(color.fill, 15))
-      gradient.addColorStop(1, color.fill)
-      this.ctx.fillStyle = gradient
-      
-      // Sombra sutil
-      this.ctx.shadowColor = 'rgba(0, 0, 0, 0.2)'
-      this.ctx.shadowBlur = 3
-      this.ctx.shadowOffsetX = 1
-      this.ctx.shadowOffsetY = 1
-    }
-    
+    // Solo color plano, sin gradientes ni sombras
+    this.ctx.fillStyle = color.fill
     this.ctx.fill()
     
-    // Resetear sombra para el borde
-    this.ctx.shadowBlur = 0
-    this.ctx.shadowOffsetX = 0
-    this.ctx.shadowOffsetY = 0
-    
-    // Dibujar el borde
-    const borderWidth = Math.min(2 + fusionLevel, 6) // Borde más grueso para niveles altos
-    this.ctx.strokeStyle = isBeingDragged ? this.darkenColor(color.stroke, 20) : color.stroke
-    this.ctx.lineWidth = borderWidth
+    // Borde simple
+    this.ctx.strokeStyle = color.stroke
+    this.ctx.lineWidth = 2
     this.ctx.stroke()
-    
-    // Dibujar pequeño highlight para efecto 3D
-    this.ctx.beginPath()
-    this.ctx.arc(-radius * 0.3, -radius * 0.3, radius * 0.2, 0, Math.PI * 2)
-    const highlightOpacity = Math.min(0.3 + (fusionLevel * 0.05), 0.8)
-    this.ctx.fillStyle = `rgba(255, 255, 255, ${highlightOpacity})`
-    this.ctx.fill()
     
     // Dibujar el número
     this.ctx.fillStyle = 'white'
-    const fontSize = Math.min(14 + fusionLevel * 2, 28) // Texto más grande para valores altos
+    const fontSize = Math.min(20 + fusionLevel * 3, 40) // Tipografía más grande: base 20px, hasta 40px
     this.ctx.font = `bold ${fontSize}px sans-serif`
     this.ctx.textAlign = 'center'
     this.ctx.textBaseline = 'middle'
     this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)'
-    this.ctx.lineWidth = Math.min(3 + fusionLevel, 6)
+    this.ctx.lineWidth = Math.min(4 + fusionLevel, 8) // Contorno más grueso también
     this.ctx.strokeText(body.value.toString(), 0, 0)
     this.ctx.fillText(body.value.toString(), 0, 0)
+    
+    // Agregar rayita para diferenciar 6 y 9
+    if (body.value === 6 || body.value === 9) {
+      const underlineY = fontSize * 0.5 // Posición debajo del número
+      const underlineWidth = fontSize * 0.6 // Ancho de la rayita
+      
+      this.ctx.beginPath()
+      this.ctx.moveTo(-underlineWidth / 2, underlineY)
+      this.ctx.lineTo(underlineWidth / 2, underlineY)
+      this.ctx.strokeStyle = 'white'
+      this.ctx.lineWidth = Math.max(2, fontSize * 0.08) // Grosor proporcional
+      this.ctx.stroke()
+    }
     
     this.ctx.restore()
   }
