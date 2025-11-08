@@ -85,7 +85,7 @@ let animationId = null
 let bubbleInterval = null
 let nextFloatingId = 0
 
-let bubbleSpawnInterval = 2600 // Empieza más lento
+let bubbleSpawnInterval = 4000 // Empieza más lento
 
 const createBubble = () => {
   if (physicsEngine && physicsEngine.bubbleFactory) {
