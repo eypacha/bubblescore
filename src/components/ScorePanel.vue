@@ -7,12 +7,21 @@
           <div class="text-3xl font-bold text-blue-600">{{ score.toLocaleString() }}</div>
         </div>
         <div v-if="lastFusion.points > 0" class="px-4 py-2 rounded-lg animate-custom-pulse" 
-             :class="lastFusion.colorBonus ? 'bg-yellow-100 border border-yellow-300' : 'bg-green-100 border border-green-300'">
+             :class="[
+               lastFusion.isPerfectFusion ? 'bg-purple-100 border border-purple-300' :
+               lastFusion.colorBonus ? 'bg-yellow-100 border border-yellow-300' : 'bg-green-100 border border-green-300'
+             ]">
           <div class="text-sm font-medium" 
-               :class="lastFusion.colorBonus ? 'text-yellow-700' : 'text-green-700'">
+               :class="[
+                 lastFusion.isPerfectFusion ? 'text-purple-700' :
+                 lastFusion.colorBonus ? 'text-yellow-700' : 'text-green-700'
+               ]">
             +{{ lastFusion.points }} pts • {{ lastFusion.fusion }}
           </div>
-          <div v-if="lastFusion.colorBonus" class="text-xs text-yellow-600 font-bold flex items-center">
+          <div v-if="lastFusion.isPerfectFusion" class="text-xs text-purple-600 font-bold flex items-center">
+            💯 ¡FUSIÓN PERFECTA! ¡BURBUJA DESAPARECE! 💯
+          </div>
+          <div v-else-if="lastFusion.colorBonus" class="text-xs text-yellow-600 font-bold flex items-center">
             ⭐ BONUS MISMO COLOR ⭐
           </div>
         </div>

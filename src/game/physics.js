@@ -143,11 +143,18 @@ export class GamePhysics {
     // Resetear estado del juego primero
     this.isGameOver = false
     this.selectedBubble = null
+    this.selectedBubbles = []
+    this.lastClickPosition = null
     
     // Limpiar todas las burbujas
     const bodies = Matter.Composite.allBodies(this.world)
     const bubbles = bodies.filter(body => body.isBubble)
     Matter.Composite.remove(this.world, bubbles)
+    
+    // Reiniciar el bubble factory
+    if (this.bubbleFactory) {
+      this.bubbleFactory.reset()
+    }
     
     // Detener el runner actual y crear uno nuevo para asegurar un estado limpio
     Matter.Runner.stop(this.runner)
@@ -159,9 +166,6 @@ export class GamePhysics {
     
     // Limpiar canvas
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
-    
-    // Reiniciar el loop de animación si es necesario
-    this.animate()
     
     console.log('Physics Engine reiniciado correctamente')
   }
@@ -221,15 +225,29 @@ export class GamePhysics {
     if (sum % 10 === 0 && sum >= 10 && sum <= 100) {
       this.audioManager.playFusionSound()
       
-      const newX = this.lastClickPosition ? this.lastClickPosition.x : (bubbleA.position.x + bubbleB.position.x) / 2
-      const newY = this.lastClickPosition ? this.lastClickPosition.y : (bubbleA.position.y + bubbleB.position.y) / 2
-      
-      this.createFusedBubble(newX, newY, sum, bubbleA.color, bubbleB.color)
-      
-      Matter.World.remove(this.world, [bubbleA, bubbleB])
+      // Calcular posición de la fusión para efectos visuales
+      const fusionX = this.lastClickPosition ? this.lastClickPosition.x : (bubbleA.position.x + bubbleB.position.x) / 2
+      const fusionY = this.lastClickPosition ? this.lastClickPosition.y : (bubbleA.position.y + bubbleB.position.y) / 2
       
       const scoreResult = this.scoreManager.addScore(bubbleA.value, bubbleB.value, sum, bubbleA, bubbleB)
-      this.onBubbleFusion?.(bubbleA.value, bubbleB.value, sum, scoreResult.totalPoints, scoreResult.colorBonus)
+      
+      // Caso especial: fusión que resulta en 100
+      if (sum === 100) {
+        // La burbuja de valor 100 desaparece automáticamente y otorga puntos extra
+        console.log('¡FUSIÓN PERFECTA! Burbuja de 100 desaparece automáticamente')
+        
+        // Remover las burbujas originales sin crear una nueva
+        Matter.World.remove(this.world, [bubbleA, bubbleB])
+        
+        // Llamar callback con información de fusión especial y coordenadas
+        this.onBubbleFusion?.(bubbleA.value, bubbleB.value, sum, scoreResult.totalPoints, scoreResult.colorBonus, true, fusionX, fusionY)
+      } else {
+        // Fusión normal: crear burbuja fusionada
+        this.createFusedBubble(fusionX, fusionY, sum, bubbleA.color, bubbleB.color)
+        Matter.World.remove(this.world, [bubbleA, bubbleB])
+        
+        this.onBubbleFusion?.(bubbleA.value, bubbleB.value, sum, scoreResult.totalPoints, scoreResult.colorBonus, false, fusionX, fusionY)
+      }
       
       this.clearSelection()
     } else {

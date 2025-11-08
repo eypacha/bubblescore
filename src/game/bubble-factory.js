@@ -52,4 +52,10 @@ export class BubbleFactory {
     Matter.World.add(this.world, bubble)
     return bubble
   }
+
+  reset() {
+    // Reiniciar la bolsa de valores para un nuevo juego
+    this.valueBag = []
+    this.fillBag()
+  }
 }
