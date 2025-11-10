@@ -348,10 +348,10 @@ export class GamePhysics {
     }
 
     createFusedBubble(x, y, value, colorA, colorB) {
-        const baseRadius = 30;
-        const fusionLevel = value / 10;
-        const radius = Math.min(baseRadius + (fusionLevel * 5), 65);
 
+        const radius = this.bubbleFactory.constructor.calculateBubbleRadius(value);
+
+        const fusionLevel = value / 10;
         const fusedColor = this.colorManager.mixColors(colorA, colorB);
 
         const currentScore = this.scoreManager.getScore();

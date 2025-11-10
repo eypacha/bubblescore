@@ -2,6 +2,17 @@ import Matter from 'matter-js'
 import { BUBBLE_TIMER } from './constants.js'
 
 export class BubbleFactory {
+  static calculateBubbleRadius(value) {
+    const minRadius = 12;
+    const maxRadius = 90;
+    let scaledValue = value;
+    if (typeof scaledValue !== 'number' || isNaN(scaledValue)) scaledValue = 1;
+    scaledValue = Math.max(1, Math.min(100, scaledValue));
+    const logMin = Math.log(1);
+    const logMax = Math.log(100);
+    const logValue = Math.log(scaledValue);
+    return minRadius + ((maxRadius - minRadius) * (logValue - logMin) / (logMax - logMin));
+  }
   constructor(world, canvas, colorManager) {
     this.world = world
     this.canvas = canvas
@@ -73,10 +84,13 @@ export class BubbleFactory {
   }
 
   createNormalBubble(x, y, radius) {
-    const selectedColor = this.colorManager.getRandomColor()
-    const value = this.getNextValue()
-    
-    const bubble = Matter.Bodies.circle(x, y, radius, {
+    const selectedColor = this.colorManager.getRandomColor();
+    // Permitir pasar el valor como argumento (para fusiones), si no, tomar de la bolsa
+    const value = typeof arguments[3] === 'number' ? arguments[3] : this.getNextValue();
+  // Usar función compartida para calcular el radio
+  const scaledRadius = BubbleFactory.calculateBubbleRadius(value);
+
+    const bubble = Matter.Bodies.circle(x, y, scaledRadius, {
       restitution: 0.6,
       friction: 0.3,
       frictionAir: 0.01,
@@ -89,10 +103,10 @@ export class BubbleFactory {
       hasCollided: false,
       value: value,
       color: selectedColor
-    })
-    
-    Matter.World.add(this.world, bubble)
-    return bubble
+    });
+
+    Matter.World.add(this.world, bubble);
+    return bubble;
   }
 
   createBomb(x, y, radius) {
