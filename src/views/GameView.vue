@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
   <!-- Score panel - only shows main score -->
-    <div class="p-4 mb-4 w-full max-w-4xl">
+    <div class="p-2 w-full max-w-4xl">
       <div class="flex justify-between items-center flex-col gap-4 items-start md:flex-row md:gap-6 md:items-center">
         <div class="flex items-center gap-6">
           <div>
@@ -56,9 +56,15 @@
         :canvasHeight="canvasHeight"
         @restart="restartGame"
       />
+
+      <!-- Main Screen -->
+      <MainScreen 
+        :isVisible="isMainScreen"
+        :canvasWidth="canvasWidth"
+        :canvasHeight="canvasHeight"
+        @play="restartGame"
+      />
       
-  <!-- Game instructions -->
-      <GameInstructions/>
     </div>
   </div>
 </template>
@@ -67,8 +73,8 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { GamePhysics } from '../game/physics.js'
 import { LEVEL_UP_SCORE } from '../game/constants.js'
+import MainScreen from '../components/MainScreen.vue'
 import GameOverScreen from '../components/GameOverScreen.vue'
-import GameInstructions from '../components/GameInstructions.vue'
 import FloatingScore from '../components/FloatingScore.vue'
 
 const gameCanvas = ref(null)
@@ -77,7 +83,8 @@ const canvasHeight = ref(600)
 
 // Estado del puntaje
 const score = ref(0)
-const isGameOver = ref(false) // Cambiado a false para que inicie el juego normal
+const isGameOver = ref(false)
+const isMainScreen = ref(true)
 const floatingScores = ref([])
 const level = ref(1)
 
@@ -109,6 +116,7 @@ const createBubble = (event) => {
 const restartGame = () => {
   console.log('RestartGame llamado...')
   isGameOver.value = false
+  isMainScreen.value = false
   score.value = 0
   floatingScores.value = []
   
