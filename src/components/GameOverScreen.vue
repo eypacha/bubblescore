@@ -5,12 +5,11 @@
     
     <!-- Title Game Over -->
     <div class="text-center mb-8">
-      <div class="text-5xl mb-3">🎯</div>
       <h2 class="text-4xl font-bold text-gray-800 mb-2">Game Over</h2>
     </div>
 
     <!-- Statistics -->
-    <div class="bg-gray-50 rounded-lg p-4 mb-6 w-full max-w-xs">
+    <div class="bg-gray-50 border border-gray-300 rounded-[30px] p-4 mb-6 w-full max-w-xs">
       <div class="text-center space-y-3">
         <div>
           <div class="text-2xl font-bold text-blue-600">{{ score.toLocaleString() }}</div>
@@ -26,10 +25,10 @@
     <div class="flex flex-col gap-2 w-full max-w-xs">
       <button 
         @click="$emit('restart')"
-        class="bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm">
+        class="bg-blue-600 text-white font-medium py-2 px-4 rounded-[30px] transition-colors duration-200 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm">
         Play Again
       </button>
-      <div class="text-center mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
+      <div class="text-center mt-2 p-2 bg-gray-50 border border-gray-300 rounded-[30px] text-xs text-gray-600">
         💡 Tip: {{ randomTip }}
       </div>
     </div>
